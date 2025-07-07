@@ -1,0 +1,26 @@
+{
+    "url" : "mongodb://localhost:27017/mshakti",
+    "db": {
+        "host": "localhost:27017",
+        "hostname": "localhost:27017",
+        "username": "",
+        "database": "mshakti",
+        "password": "",
+        "useUnifiedTopology": true
+    },
+    "limit" : 30,
+    "offset" : 0,
+    "jwt": {
+        "secret": "mShakti123"
+    },
+    "imageUrl": "http://192.168.0.107:7012/uploads/",
+    "audioUrl": "http://localhost:7012/uploads/audio/",
+    "articleImageUrl": "http://localhost:7012/uploads/article/",
+    "categoryImageUrl": "http://localhost:7012/uploads/category/",
+    "feedImageUrl": "http://localhost:7012/uploads/feed/",
+    "slideImageUrl": "http://localhost:7012/uploads/slides/",
+    "audioImageUrl": "http://localhost:7012/uploads/audio-image/",
+    "videoImageUrl": "http://localhost:7012/uploads/video/",
+    "defaultImageUrl": "http://128.199.212.15:7012/uploads/default.jpg"
+
+}

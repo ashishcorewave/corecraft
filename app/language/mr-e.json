@@ -1,0 +1,287 @@
+{
+  "home": {
+    "title": "मुख्यपृष्ठ",
+    "body": {
+      "appBarTitle": "ऍप बार शीर्षक",
+      "headingKnowledgeHub": "नॉलेज हब",
+      "descriptionKnowledgeHub": "तुमचे ज्ञान अपग्रेड करण्यासाठी आमची क्युरेट केलेल्या लेख, व्हिडिओ आणि ऑडिओ कास्टची सूची",
+      "cardTitleArticle": "लेख",
+      "cardTitleAudio": "ऑडिओ",
+      "cardTitleVideo": "व्हिडिओ",
+      "cardTitleResources": "संसाधने",
+      "headingContacts": "संपर्क",
+      "contactDescription": "उद्योगांमधील सर्वोत्तम आणि सर्वात प्रसिद्ध संपर्क",
+      "iconTitleDoctor": "डॉक्टर",
+      "iconTitleHospital": "हॉस्पिटल",
+      "iconTitleBloodBank": "रक्तपेढी",
+      "iconTitleAmbulance": "रुग्णवाहिका",
+      "headingResources": "संसाधने",
+      "resourceDescription": "पैसे, साहित्य, कर्मचारी आणि इतर मालमत्तेचा साठा किंवा पुरवठा",
+      "iconTitleFinancialAir": "आर्थिक हवा",
+      "iconTitleDiet": "आहार",
+      "iconTitleMentalHealth": "मानसिक आरोग्य",
+      "iconTitleExercise": "व्यायाम करा",
+      "iconTitleFaqs": "वारंवार विचारले जाणारे प्रश्न",
+      "headingFeed": "अन्न देणे",
+      "feedDescription": "तुमची दृश्ये, कल्पना किंवा अद्यतने जग आणि त्यांच्याशी शेअर करा",
+      "unOrderedListItem1": "सोशल सोबत तुमची ब्रँड पोहोच वाढवा…",
+      "unOrderedListItem2": "वापरकर्ता प्रतिबद्धता वाढवा",
+      "unOrderedListItem3": "वेबसाइट व्हायब्रन्सी वाढवा",
+      "unOrderedListItem4": "वापरकर्ता अनुभव वाढवा",
+      "buttonContent": "समुदाय एक्सप्लोर करा",
+      "headingConnect": "चला कनेक्ट करूया !!",
+      "connectDescription": "हलक्या मनाच्या लोकांशी कनेक्ट होण्यासाठी ऑनलाइन, वैयक्तिक आणि इतर कार्यक्रमांची भरपूर संख्या",
+      "iconTitleEvent": "कार्यक्रम",
+      "iconTitleOnEvent": "ऑनलाइन कार्यक्रम",
+      "iconTitleOfEvent": "ऑफलाइन इव्हेंट",
+      "iconTitleExEvent": "बाह्य कार्यक्रम"
+    }
+  },
+  "homeFilter": {
+    "title": "ज्ञान फिल्टर करा",
+    "body": {
+      "buttonContentSearch": "शोधा",
+      "placeholderContentType": "सामग्री प्रकार",
+      "optionHome": "मुख्यपृष्ठ",
+      "optionAudio": "ऑडिओ",
+      "optionVideo": "व्हिडिओ",
+      "placeholderArticleCategory": "लेख श्रेणी",
+      "optionPatient": "कर्करोगाचे रुग्ण",
+      "optionSurvivor": "कॅन्सर सर्व्हायव्हर",
+      "optionDoctor": "डॉक्टर",
+      "placeholderContactLevel": "संपर्क स्तर",
+      "optionBeginnner": "शुरुआती",
+      "optionIntermediate": "मध्यम",
+      "optionProficient": "प्रवीण"
+    }
+  },
+  "feed": {
+    "title": "खिलाना",
+    "body": {
+      "pointText": "अर्जित अंक NO_OF_POINTS",
+      "feedCommentSection": "टिप्पणियाँ",
+      "feedLike": "X और x अन्य द्वारा पसंद किया गया"
+    }
+  },
+  "event": {
+    "title": "आयोजन",
+    "body": {
+      "searchBarPlaceholder": "खोज",
+      "searchText": "कुल एक्स इवेंट्स लाइव",
+      "descTitleDate": "तारीख",
+      "descTitleTime": "समय",
+      "descTitleType": "प्रकार",
+      "descTitleAddress": "पता"
+    }
+  },
+  "contact": {
+    "title": "संपर्क",
+    "body": {
+      "cardIconTitleCall": "पुकारना",
+      "cardIconTitleEmail": "ईमेल",
+      "cardIconTitleWhatsapp": "Whatsapp"
+    }
+  },
+  "contactFilter": {
+    "title": "फिल्टर",
+    "body": {
+      "filterTitleS": "विशेषज्ञता",
+      "filterTitleU": "उपयोगकर्ता का प्रकार",
+      "filterTitleD": "पूर्ण"
+    }
+  },
+  "appDrawer": {
+    "title": "ज्ञान हब",
+    "body": {
+      "subTitleHome": "घरों",
+      "subTitleAudio": "ऑडियो",
+      "subTitleVideo": "वीडियो",
+      "subTitleMagazine": "पत्रिका",
+      "subTitleEvent": "आयोजन",
+      "subTitleOffline": "ऑफलाइन",
+      "subTitleOnline": "ऑनलाइन",
+      "subTitleMyEvent": "मेरी घटनाएँ",
+      "titleContact": "संपर्क",
+      "subTitleHospital": "अस्पताल",
+      "subTitleDoctor": "डॉक्टरों",
+      "subTitleOther": "अन्य",
+      "titleQuiz": "प्रश्नोत्तरी",
+      "titlePaidResources": "सशुल्क संसाधन",
+      "titleLeaderboard": "लीडरबोर्ड",
+      "titleDonatio": "दान",
+      "titleResource": "संसाधन",
+      "titleAbout": "हमारे बारे में",
+      "titleShare": "साझा करें और आमंत्रित करें",
+      "titleHelp": "सहायता और प्रतिक्रिया"
+    }
+  },
+  "leaderBoard": {
+    "title": "लीडरबोर्ड",
+    "body": {
+      "title": "बधाई",
+      "descScore": "आपने x अंक अर्जित किए हैं",
+      "descBadge": "एक्स बैज",
+      "bContentM": "इस महीने",
+      "bContentO": "कुल मिलाकर",
+      "bContentP": "एक्स अंक",
+      "bContentB": "एक्स बैज"
+    }
+  },
+  "profile": {
+    "title": "प्रोफ़ाइल",
+    "body": {
+      "iconTitleBadge": "बैज",
+      "iconTitlePoint": "अंक",
+      "cardHeadingP": "निजी",
+      "cardHeadingC": "संपर्क"
+    }
+  },
+  "articleDetails": {
+    "title": "लेख विवरण",
+    "body": {
+      "headingTitle": "टैग",
+      "headingDescription": "विवरण"
+    }
+  },
+  "walkThrough": {
+    "title": "जानकारी",
+    "body": {
+      "title": "समुदाय",
+      "titleResource": "संसाधन",
+      "subTitle1": "कैंसर के बारे में सभी जानकारी के लिए वन-स्टॉप डेस्टिनेशन।",
+      "subTitle2": "समान विचारधारा वाले साथी यात्रियों के साथ-साथ इस ऐप को नेटवर्किंग करना आपका आभासी समर्थन होगा।",
+      "subTitle3": "कैंसर यात्रा को आसान बनाने के लिए संसाधन।"
+    }
+  },
+  "eventDetail": {
+    "title": "घटना का विवरण",
+    "body": {
+      "text1": "शुरू",
+      "text2": "अंत",
+      "text3": "क्षमता",
+      "text4": "RSVP",
+      "text5": "कोई रिकॉर्ड नहीं मिला"
+    }
+  },
+  "signIn": {
+    "title": "दाखिल करना",
+    "body": {
+      "textSignIn": "दाखिल करना",
+      "textPassword": "पासवर्ड",
+      "textRemember": "याद करना",
+      "textEmail": "ईमेल आईडी",
+      "textForgot": "पासवर्ड भूल गए",
+      "textWelcome": "स्वागत",
+      "textBack": "पीछे!",
+      "textDontHave": "खाता नहीं है?",
+      "textSignUp": "साइन अप करें",
+      "textCreateAccount": "खाता बनाएं",
+      "text5BottomSheet": "सबसे निचली शीट",
+      "textReview": "समीक्षा",
+      "textSetting": "समायोजन",
+      "textRNotification": "अधिसूचना प्राप्त करें",
+      "textRNews": "सूचना पत्र प्राप्त करें",
+      "textRSpecial": "विशेष प्रस्ताव प्राप्त करें",
+      "textEdit": "संपादन करना",
+      "textLocation": "जगह",
+      "textChange": "परिवर्तन",
+      "textLanguage": "भाषा",
+      "textDone": "पूर्ण",
+      "textMax": "अधिकतम",
+      "textMin": "मिन",
+      "textProfile": "प्रोफ़ाइल",
+      "textListing": "लिस्टिंग",
+      "textLong1": "एक बाउल में चीज़, नमक, रेड चिल्ली फ्लेक्स और मिला हुआ ऑरेगानो मिलाएँ।",
+      "textLong2": "बहुत अच्छी तरह मिलाएं और एक नरम मिश्रण बना लें।",
+      "textLong3": "ब्रेड स्लाइस के किनारों को हल्का सा काट लें और उस पर मक्खन लगाएं।",
+      "textLong4": "तैयार मिश्रण को बटर वाली ब्रेड के आधे हिस्से पर रखें और दूसरी तरफ से ढक दें",
+      "textLong5": "कॉर्नस्टार्च की थोड़ी सी मात्रा लगाकर टाइट रोल बना लें।",
+      "textLong6": "लगभग 20 मिनट के लिए पहले से गरम ओवन में बेक करें।",
+      "textLogout": "लॉग आउट",
+      "textOpen": "खुला",
+      "textClose": "बंद करना",
+      "textMyVideo": "मेरे वीडियो",
+      "textVideo": "वीडियो",
+      "textFollower": "समर्थक",
+      "textTag": "टैग",
+      "textReceipe": "नई रेसिपी",
+      "textCheeseRoll": "जॉन डो द्वारा चीज़ रोल रेसिपी",
+      "textShare": "साझा",
+      "textReceipeStep": "रेसिपी स्टेप्स",
+      "textCheckVideo": "वीडियो जांचें",
+      "textFrench": "फ्रेंच",
+      "textViewMoreReceipe": "और रेसिपी देखें",
+      "textWalkThrough": "के माध्यम से चलो"
+    }
+  },
+  "quizz": {
+    "title": "प्रश्नोत्तरी",
+    "body": {
+      "textTitle": "उपलब्ध प्रश्नोत्तरी",
+      "textDescription": "आपने लेख/ऑडियो/वीडियो से जो कुछ भी सीखा है, उसे जल्दी से दोहराने के लिए क्विज़ एक मज़ेदार तरीका है",
+      "textTotal": "कुल x क्विज़ उपलब्ध हैं।",
+      "textAppear": "प्रश्नोत्तरी प्रकट करें",
+      "textRead": "लेख पढ़ें",
+      "textCategory": "वर्ग",
+      "textPrev": "पिछला",
+      "textCompleted": "पुरा होना।",
+      "textNext": "अगला",
+      "textTrue": "सत्य",
+      "textFalse": "असत्य",
+      "textNoData": "कोई डेटा नहीं",
+      "textCompletedDesc": "लेख पूरा किया? अब क्विज़ में भाग लें और 10 अतिरिक्त अंक प्राप्त करें",
+      "textQuiz": "प्रश्न पूछना",
+      "textResult": "परिणाम",
+      "textCongratulation": "बधाई",
+      "textCompletionMessage": "आपने प्रश्नोत्तरी पूरी कर ली है, आपका स्कोर निम्न है",
+      "textReappear": "प्रश्नोत्तरी फिर से प्रकट करें",
+      "textGoTo": "आर्टिकल पर जाएं"
+    }
+  },
+  "language": {
+    "title": "भाषा चुनें"
+  },
+  "forgotPassword": {
+    "title": "पासवर्ड रीसेट",
+    "description": "अपना पासवर्ड रीसेट करने के लिए, रीसेट लिंक प्राप्त करने के लिए अपना ईमेल दर्ज करें।",
+    "button": "भेजना"
+  },
+  "eventList": {
+    "title": "घटना सूची",
+    "body": {
+      "textTotal": "कुल एक्स इवेंट्स लाइव",
+      "textDate": "तारीख",
+      "textTime": "समय",
+      "textType": "प्रकार",
+      "textAddress": "पता",
+      "textSorry": "क्षमा मांगना"
+    }
+  },
+  "savedEvent": {
+    "title": "सहेजे गए ईवेंट",
+    "body": {
+      "textDate": "तारीख",
+      "textTime": "समय",
+      "textType": "प्रकार",
+      "textAddress": "पता"
+    }
+  },
+  "contactList": {
+    "title": "संपर्क सूची",
+    "body": {
+      "noResult": "कोई परिणाम नहीं मिला",
+      "totalContact": "कुल संपर्क आपके मानदंड के अनुसार मिले"
+    }
+  },
+  "Other": {
+    "Settings": "समायोजन",
+    "Notification": "अधिसूचना",
+    "Login": "लॉग इन करें",
+    "Logout": "लॉग आउट",
+    "Signin": "दाखिल करना",
+    "Signup": "साइन अप करें",
+    "Social": "सामाजिक लॉगिन",
+    "Terms": "नियम व शर्तें",
+    "Privacy": "गोपनीयता नीति"
+  }
+}

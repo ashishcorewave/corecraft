@@ -1,0 +1,16 @@
+const express = require('express');
+const router = express.Router();
+const videos = require('../controllers/video.controller.js');
+
+router.post('/video', videos.create);
+router.get('/video', videos.getAll);
+router.get('/video/search', videos.searchVideo);
+router.get('/video/:videoId', videos.getById);
+
+router.put('/video/:videoId', videos.update);
+router.delete('/video/:videoId', videos.delete);
+router.post("/video/comment", videos.createComment)
+router.get("/videoComments", videos.getAllComments)
+router.delete("/video/comment/:commentId", videos.deleteComment)
+router.post("/likeVideo", videos.likeVideo)
+module.exports = router;

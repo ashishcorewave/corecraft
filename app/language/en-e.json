@@ -1,0 +1,287 @@
+{
+  "home": {
+    "title": "Home",
+    "body": {
+      "appBarTitle": "App Bar Title",
+      "headingKnowledgeHub": "Knowledge Hub",
+      "descriptionKnowledgeHub": "Our list of curated Article, Video and Aduio cast to upgrade your knowledge",
+      "cardTitleArticle": "Article",
+      "cardTitleAudio": "Audio",
+      "cardTitleVideo": "Video",
+      "cardTitleResources": "Resources",
+      "headingContacts": "Contacts",
+      "contactDescription": "The best and most renowned contacts from industries",
+      "iconTitleDoctor": "Doctor",
+      "iconTitleHospital": "Hospital",
+      "iconTitleBloodBank": "Bloodbank",
+      "iconTitleAmbulance": "Ambulance",
+      "headingResources": "Resources",
+      "resourceDescription": "A stock or supply of money, materials, staff, and other assets",
+      "iconTitleFinancialAir": "Financial air",
+      "iconTitleDiet": "Diet",
+      "iconTitleMentalHealth": "Mental Health",
+      "iconTitleExercise": "Exercise",
+      "iconTitleFaqs": "FAQs",
+      "headingFeed": "Feed",
+      "feedDescription": "Share your views, ideas or updates with the world and theirs",
+      "unOrderedListItem1": "Grow Your Brand Reach With Social...",
+      "unOrderedListItem2": "Increase User Engagement & Dwell Time",
+      "unOrderedListItem3": "Enhance Website Vibrancy & Design.",
+      "unOrderedListItem4": "Amplify User Experience & Conversions.",
+      "buttonContent": "Explore Community",
+      "headingConnect": "Let's connect !!",
+      "connectDescription": "Plethora of online, in-person and other events to connect with lite minded people",
+      "iconTitleEvent": "Events",
+      "iconTitleOnEvent": "Online Event",
+      "iconTitleOfEvent": "Offline Event",
+      "iconTitleExEvent": "External Event"
+    }
+  },
+  "homeFilter": {
+    "title": "Filter knowledge",
+    "body": {
+      "buttonContentSearch": "Search",
+      "placeholderContentType": "Content type",
+      "optionHome": "Home",
+      "optionAudio": "Audio",
+      "optionVideo": "Video",
+      "placeholderArticleCategory": "Article category",
+      "optionPatient": "Cancer Patients",
+      "optionSurvivor": "Cancer Survivor",
+      "optionDoctor": "Doctor",
+      "placeholderContactLevel": "Contact Level",
+      "optionBeginnner": "Beginner",
+      "optionIntermediate": "Intermediate",
+      "optionProficient": "Proficient"
+    }
+  },
+  "feed": {
+    "title": "Feed",
+    "body": {
+      "pointText": "NO_OF_POINTS Points earned",
+      "feedCommentSection": "Comments",
+      "feedLike": "Liked by *"
+    }
+  },
+  "event": {
+    "title": "Events",
+    "body": {
+      "searchBarPlaceholder": "Search",
+      "searchText": "Total x Events Live",
+      "descTitleDate": "Date",
+      "descTitleTime": "Time",
+      "descTitleType": "Type",
+      "descTitleAddress": "Address"
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "body": {
+      "cardIconTitleCall": "Call",
+      "cardIconTitleEmail": "Email",
+      "cardIconTitleWhatsapp": "Whatsapp"
+    }
+  },
+  "contactFilter": {
+    "title": "Filters",
+    "body": {
+      "filterTitleS": "Specialization",
+      "filterTitleU": "User Type",
+      "filterTitleD": "Done"
+    }
+  },
+  "appDrawer": {
+    "title": "Knowledge Hub",
+    "body": {
+      "subTitleHome": "Homes",
+      "subTitleAudio": "Audio",
+      "subTitleVideo": "Video",
+      "subTitleMagazine": "Magazines",
+      "subTitleEvent": "Events",
+      "subTitleOffline": "Offline",
+      "subTitleOnline": "Online",
+      "subTitleMyEvent": "My Events",
+      "titleContact": "Contacts",
+      "subTitleHospital": "Hospitals",
+      "subTitleDoctor": "Doctors",
+      "subTitleOther": "Others",
+      "titleQuiz": "Quizzes",
+      "titlePaidResources": "Paid Resources",
+      "titleLeaderboard": "Leaderboards",
+      "titleDonatio": "Donations",
+      "titleResource": "Resources",
+      "titleAbout": "About Us",
+      "titleShare": "Share and Invite",
+      "titleHelp": "Help and Feedback"
+    }
+  },
+  "leaderBoard": {
+    "title": "Leaderboard",
+    "body": {
+      "title": "Congratulation",
+      "descScore": "You have scored x Points",
+      "descBadge": "x Badges",
+      "bContentM": "This Month",
+      "bContentO": "Over All",
+      "bContentP": "x Points",
+      "bContentB": "x Badges"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "body": {
+      "iconTitleBadge": "Badges",
+      "iconTitlePoint": "Points",
+      "cardHeadingP": "Personal",
+      "cardHeadingC": "Contacts"
+    }
+  },
+  "articleDetails": {
+    "title": "Article Details",
+    "body": {
+      "headingTitle": "Tags",
+      "headingDescription": "Description"
+    }
+  },
+  "walkThrough": {
+    "title": "Information",
+    "body": {
+      "title": "Community",
+      "titleResource": "Resources",
+      "subTitle1": "One-stop destination for all information on cancer.",
+      "subTitle2": "Networking this app will be your virtual support along with likeminded fellow traveler's.",
+      "subTitle3": "Resources to simplify the cancer journey."
+    }
+  },
+  "eventDetail": {
+    "title": "Event Detail",
+    "body": {
+      "text1": "Start",
+      "text2": "End",
+      "text3": "Capacity",
+      "text4": "RSVP",
+      "text5": "No record found"
+    }
+  },
+  "signIn": {
+    "title": "Sign In",
+    "body": {
+      "textSignIn": "Sign In",
+      "textPassword": "Password",
+      "textRemember": "Remember",
+      "textEmail": "Email Id",
+      "textForgot": "Forgot Password",
+      "textWelcome": "Welcome",
+      "textBack": "Back!",
+      "textDontHave": "Don't have an account?",
+      "textSignUp": "Sign Up",
+      "textCreateAccount": "Create Account",
+      "text5BottomSheet": "Bottom Sheet",
+      "textReview": "Review",
+      "textSetting": "Settings",
+      "textRNotification": "Receive Notification",
+      "textRNews": "Receive Newsletter",
+      "textRSpecial": "Receive special offer",
+      "textEdit": "Edit",
+      "textLocation": "Location",
+      "textChange": "Change",
+      "textLanguage": "Language",
+      "textDone": "Done",
+      "textMax": "Max",
+      "textMin": "Min",
+      "textProfile": "Profile",
+      "textListing": "Listing",
+      "textLong1": "Combine the cheese, salt, red chilli flakes and mixed oregano in a bowl.",
+      "textLong2": "Mix very well and make a soft mixture.",
+      "textLong3": "Slightly cut the edges of the bread slices and apply butter on it.",
+      "textLong4": "Put the prepared mixture on half side of the buttery bread and cover with the other side",
+      "textLong5": "Make a tight roll by applying little amount of cornstarch.",
+      "textLong6": "Bake in preheated oven for about 20 minutes.",
+      "textLogout": "Logout",
+      "textOpen": "Open",
+      "textClose": "Close",
+      "textMyVideo": "My Videos",
+      "textVideo": "Videos",
+      "textFollower": "Followers",
+      "textTag": "Tags",
+      "textReceipe": "New Recipe",
+      "textCheeseRoll": "Cheese roll recipe by John Doe",
+      "textShare": "Share to",
+      "textReceipeStep": "Recipe Steps",
+      "textCheckVideo": "Check Video",
+      "textFrench": "French",
+      "textViewMoreReceipe": "View more Recipe",
+      "textWalkThrough": "Walk Through"
+    }
+  },
+  "quizz": {
+    "title": "Quizz",
+    "body": {
+      "textTitle": "Available Quizzes",
+      "textDescription": "Quizzes are a fun way to quickly revise whaterver you have learned from article/ audio/ video",
+      "textTotal": "Total x Quizzes are available..",
+      "textAppear": "Appear Quiz",
+      "textRead": "Read Article",
+      "textCategory": "Category",
+      "textPrev": "Prev",
+      "textCompleted": "Completed",
+      "textNext": "Next",
+      "textTrue": "True",
+      "textFalse": "FALSE",
+      "textNoData": "No Data",
+      "textCompletedDesc": "Completed the article ? Now attend the quiz and get 10 extra points",
+      "textQuiz": "Quiz",
+      "textResult": "Result",
+      "textCongratulation": "Congratulation",
+      "textCompletionMessage": "You have completed the quiz, following is your score",
+      "textReappear": "Reappear Quiz",
+      "textGoTo": "Go to Article"
+    }
+  },
+  "language": {
+    "title": "Choose Language"
+  },
+  "forgotPassword": {
+    "title": "Password Reset",
+    "description": "To reset your password, enter your email to get reset link.",
+    "button": "Send"
+  },
+  "eventList": {
+    "title": "Event List",
+    "body": {
+      "textTotal": "Total x Events Live",
+      "textDate": "Date",
+      "textTime": "Time",
+      "textType": "Type",
+      "textAddress": "Address",
+      "textSorry": "Sorry"
+    }
+  },
+  "savedEvent": {
+    "title": "Saved Events",
+    "body": {
+      "textDate": "Date",
+      "textTime": "Time",
+      "textType": "Type",
+      "textAddress": "Address"
+    }
+  },
+  "contactList": {
+    "title": "Contact List",
+    "body": {
+      "noResult": "No results found",
+      "totalContact": "Total Contacts found as per your criteria"
+    }
+  },
+  "Other": {
+    "Settings": "Settings",
+    "Notification": "Notification",
+    "Login": "Login",
+    "Logout": "Logout",
+    "Signin": "Signin",
+    "Signup": "Signup",
+    "Social": "Social Login",
+    "Terms": "Terms And Condition",
+    "Privacy": "Privacy Policy"
+  }
+}

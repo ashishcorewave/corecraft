@@ -1,0 +1,24 @@
+{
+    "url" : "mongodb://localhost:27017/mshakti",
+    "db": {
+        "hostname": "127.0.0.1:27017",
+        "username": "ics_admin",
+        "database": "ics",
+        "password": "W3u=Geivp+s.LFAa",
+        "useUnifiedTopology": true
+    },
+    "limit" : 10,
+    "offset" : 0,
+    "jwt": {
+        "secret": "mShakti123"
+    },
+    "imageUrl": "https://api.icsapp.org/uploads/",
+    "audioUrl": "https://api.icsapp.org/uploads/audio/",
+    "contactImageUrl": "https://api.icsapp.org/",
+    "articleImageUrl": "https://api.icsapp.org/uploads/article/",
+    "categoryImageUrl": "https://api.icsapp.org/uploads/category/",
+    "feedImageUrl": "https://api.icsapp.org/uploads/feed/",
+    "slideImageUrl": "https://api.icsapp.org/uploads/slides/",
+    "defaultImageUrl": "https://api.icsapp.org/uploads/default.jpg"
+
+}
