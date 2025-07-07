@@ -9,8 +9,10 @@ router.get('/about', static.getAbout)
 router.get('/terms', static.getTerms)
 router.get('/privacy', static.getPrivacy)
 router.get('/disclaimer', static.getDisclaimer)
+//CMS
+router.post('/privacy', static.createPrivacy);//New
 router.get('/static', static.getById)
-router.post('/static', static.update)
+router.put('/static', static.update)
 
 
 //New api
