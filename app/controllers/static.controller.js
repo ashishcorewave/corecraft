@@ -21,8 +21,7 @@ exports.createPrivacy = async (req, res) => {
 exports.getById = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
-    const type = req.query.type || "privacy";
-
+    const type = req.query.type;
 
     const selectField = {
       [`title.${language}`]: 1,
@@ -33,17 +32,38 @@ exports.getById = async (req, res) => {
 
     const data = await Static.findOne(query, selectField).lean();
 
+    // ✅ If not found, return null in data
+    if (!data) {
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: "Content fetched successfully",
+        data: null
+      });
+    }
+
     const responseData = {
       _id: data._id,
       title: data.title?.[language] || "",
       content: data.content?.[language] || ""
     };
-    return res.status(200).json({ status: true, code: 200, message: "Content fetched successfully", data: responseData });
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: "Content fetched successfully",
+      data: responseData
+    });
 
   } catch (err) {
-    return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      code: 500,
+      message: err.message || "Internal Server Error"
+    });
   }
 };
+
 
 
 exports.update = async (req, res) => {

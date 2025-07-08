@@ -18,7 +18,7 @@ router.delete("/articles/comments/:commentId", articles.deleteComment);
 
 // Other Article Actions
 router.post("/articles/read", articles.readArticle);
-router.post("/articles/like", articles.likeArticle);
+router.post("/likeArticle", articles.likeArticle)
 router.post("/articles/report", articles.reportArticle);
 router.post("/articles/uploadImage", uploadArticle.single("image"), articles.uploadArticleImage);
 

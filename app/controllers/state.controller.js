@@ -31,18 +31,30 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const language = req.headers["language"] || req.query.language || "en";
-    const filter = {
-      isDeleted: false
-    };
+    const filter = { isDeleted: false };
+    const offset = +req.query.offset || 0; // 0-based indexing
+    const perPage = +req.query.perPage || 10;
+    const q = req.query.q || "";
+    let count = await State.countDocuments(filter)
+
     const state = await State.find(filter).sort({ _id: -1 }).select('_id value label createdAt').lean();
-    const finalData = state
-      .filter(item => item.label && item.label[language]) // only if doctor has name in selected language
+
+    const filteredState = state.filter((item) => {
+      const stateInLang = item.label && item.label[language];
+      if (!stateInLang) return false;
+      if (q) {
+        return stateInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
+    const data = filteredState.slice(offset, offset + perPage)
+      .filter(item => item.label && item.label[language])
       .map(item => {
         return {
           _id: item._id,
           label: item.label[language],
           value: item.value,
-          shortCode:language,
+          shortCode: language,
         };
       });
 
@@ -50,7 +62,8 @@ exports.getAll = async (req, res) => {
       status: true,
       code: "200",
       message: "State filtered by language successfully",
-      data: finalData
+      data,
+      count: count
     });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
@@ -123,7 +136,7 @@ exports.delete = async (req, res) => {
     };
     const options = { new: true };
     await State.findByIdAndUpdate(filter, update, options);
-    return res.status(201).json({status:false, code:201, message:messages.delete.success });
+    return res.status(201).json({ status: false, code: 201, message: messages.delete.success });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }

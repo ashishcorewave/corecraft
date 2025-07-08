@@ -11,14 +11,14 @@ exports.create = async (req, res) => {
   try {
     const token = req.headers['access-token'] || req.headers['authorization'];
     const userDetail = await userHelper.detail(token);
-    const { category, name, email, contact_number, website, pincode,whatsapp_number, specialization, education, office_hours, institution, city, address, remarks, state } = req.body;
+    const { category, name, email, contact_number, website, pincode, whatsapp_number, specialization, education, office_hours, institution, city, address, remarks, state } = req.body;
     const language = req.headers["language"] || req.body.language;
 
     const contacts = new Contact({
       category: category,
       state: state,
-      website:website,
-      pincode:pincode,
+      website: website,
+      pincode: pincode,
       name: { [language]: name },
       email: email,
       contact_number: contact_number,
@@ -57,13 +57,17 @@ exports.create = async (req, res) => {
 }
 
 //created new
+
 exports.getAll = async (req, res) => {
   try {
     const filter = { isDeleted: false };
+    const q = (req.query.q || "").trim();
     const language = req.query.language || req.headers["language"] || "en";
 
+    let count = await Contact.countDocuments(filter)
     const aggregationPipeline = [
       { $match: filter },
+
       {
         $lookup: {
           from: "contactcategories",
@@ -92,16 +96,38 @@ exports.getAll = async (req, res) => {
           preserveNullAndEmptyArrays: true
         }
       },
+
+      // Add search after all lookups so you can access nested fields
+      ...(q
+        ? [
+          {
+            $match: {
+              $or: [
+                { [`name.${language}`]: { $regex: q, $options: "i" } },
+                { [`specialization.${language}`]: { $regex: q, $options: "i" } },
+                { [`education.${language}`]: { $regex: q, $options: "i" } },
+                { [`institution.${language}`]: { $regex: q, $options: "i" } },
+                { [`remarks.${language}`]: { $regex: q, $options: "i" } },
+                { [`city.${language}`]: { $regex: q, $options: "i" } },
+                { [`address.${language}`]: { $regex: q, $options: "i" } },
+                { [`categoryResult.name.${language}`]: { $regex: q, $options: "i" } }
+              ]
+            }
+          }
+        ]
+        : []),
+
       {
         $project: {
           _id: 1,
           category: 1,
-          name: { $ifNull: [`$name.${language}`, ""] },
           email: 1,
-          pincode:1,
-          shortCode:language,
           contact_number: 1,
           whatsapp_number: 1,
+          pincode: 1,
+          loc: 1,
+          shortCode: language,
+          name: { $ifNull: [`$name.${language}`, ""] },
           specialization: { $ifNull: [`$specialization.${language}`, ""] },
           education: { $ifNull: [`$education.${language}`, ""] },
           office_hours: { $ifNull: [`$office_hours.${language}`, ""] },
@@ -109,8 +135,7 @@ exports.getAll = async (req, res) => {
           city: { $ifNull: [`$city.${language}`, ""] },
           address: { $ifNull: [`$address.${language}`, ""] },
           remarks: { $ifNull: [`$remarks.${language}`, ""] },
-          loc: 1,
-          state:  { $ifNull: [`$stateResult.label.${language}`, ""] },
+          state: { $ifNull: [`$stateResult.label.${language}`, ""] },
           categoryResult: {
             _id: "$categoryResult._id",
             name: { $ifNull: [`$categoryResult.name.${language}`, ""] },
@@ -120,21 +145,105 @@ exports.getAll = async (req, res) => {
           }
         }
       },
+
       {
         $match: {
-          name: { $ne: "" }  // Filter: Only include items with non-empty name in that language
+          name: { $ne: "" }
         }
       }
     ];
 
-    const finalData = await Contact.aggregate(aggregationPipeline).sort({ _id: -1 });
-    return res.status(200).json({ status: true, code: "200", message: `contact category filtered by language successfully`, data: finalData });
+    const data = await Contact.aggregate(aggregationPipeline).sort({ _id: -1 });
+
+    return res.status(200).json({status: true, code: "200", message: "Contacts fetched successfully with language filtering, search, and pagination", data, count: count});
   } catch (err) {
-    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+    return res.status(500).json({   status: false,  code: 500,  message: err.message || "Internal Server Error"});
   }
 };
 
+
+// exports.getAll = async (req, res) => {
+//   try {
+//     const filter = { isDeleted: false };
+//     const q = req.query.q || "";
+//     const language = req.query.language || req.headers["language"] || "en";
+
+//     const aggregationPipeline = [
+//       { $match: filter },
+//       {
+//         $lookup: {
+//           from: "contactcategories",
+//           localField: "category",
+//           foreignField: "_id",
+//           as: "categoryResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$categoryResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "states",
+//           localField: "state",
+//           foreignField: "_id",
+//           as: "stateResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$stateResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           category: 1,
+//           name: { $ifNull: [`$name.${language}`, ""] },
+//           email: 1,
+//           pincode: 1,
+//           shortCode: language,
+//           contact_number: 1,
+//           whatsapp_number: 1,
+//           specialization: { $ifNull: [`$specialization.${language}`, ""] },
+//           education: { $ifNull: [`$education.${language}`, ""] },
+//           office_hours: { $ifNull: [`$office_hours.${language}`, ""] },
+//           institution: { $ifNull: [`$institution.${language}`, ""] },
+//           city: { $ifNull: [`$city.${language}`, ""] },
+//           address: { $ifNull: [`$address.${language}`, ""] },
+//           remarks: { $ifNull: [`$remarks.${language}`, ""] },
+//           loc: 1,
+//           state: { $ifNull: [`$stateResult.label.${language}`, ""] },
+//           categoryResult: {
+//             _id: "$categoryResult._id",
+//             name: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+//             icon: "$categoryResult.icon",
+//             created_by: "$categoryResult.created_by",
+//             contacts: "$categoryResult.contacts"
+//           }
+//         }
+//       },
+//       {
+//         $match: {
+//           name: { $ne: "" }  // Filter: Only include items with non-empty name in that language
+//         }
+//       }
+//     ];
+
+//     const finalData = await Contact.aggregate(aggregationPipeline).sort({ _id: -1 });
+//     return res.status(200).json({ status: true, code: "200", message: `contact category filtered by language successfully`, data: finalData });
+//   } catch (err) {
+//     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+//   }
+// };
+
 //created new
+
+
+
 exports.update = async (req, res) => {
   try {
     const language = req.headers["language"] || req.body.language;
@@ -227,28 +336,28 @@ exports.getById = async (req, res) => {
         }
       },
       {
-    $lookup: {
-      from: "states",
-      localField: "state",
-      foreignField: "_id",
-      as: "stateResult"
-    }
-  },
-  {
-    $unwind: {
-      path: "$stateResult",
-      preserveNullAndEmptyArrays: true
-    }
-  },
+        $lookup: {
+          from: "states",
+          localField: "state",
+          foreignField: "_id",
+          as: "stateResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$stateResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
       {
         $project: {
           _id: 1,
           email: 1,
           contact_number: 1,
           whatsapp_number: 1,
-          pincode:1,
-          website:1,
-          loc:1,
+          pincode: 1,
+          website: 1,
+          loc: 1,
           name: { $ifNull: [`$name.${language}`, ""] },
           city: { $ifNull: [`$city.${language}`, ""] },
           specialization: { $ifNull: [`$specialization.${language}`, ""] },

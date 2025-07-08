@@ -63,7 +63,8 @@ exports.getAll = async (req, res) => {
     )
   .then((data) => {
     data.forEach((d, key) => {
-      d.image = d.image ? config.slideImageUrl + d.image : config.defaultImageUrl
+      // d.image = d.image ? config.slideImageUrl + d.image : config.defaultImageUrl
+        d.image =  d.image ? `${process.env.IMAGE_BASE_URL}/uploads/${ d.image}` : null
     })
     return res.send({
       status: true,

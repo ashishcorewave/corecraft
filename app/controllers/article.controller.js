@@ -66,7 +66,7 @@ exports.getAll = async (req, res) => {
           availableIn: item.availableIn,
           updatedAt: item.updatedAt,
           createdAt: item.createdAt,
-          isDeleted:item.isDeleted,
+          isDeleted: item.isDeleted,
           commentCount: item.commentCount,
           shortCode: language,
           Img: item.Img ? `${process.env.IMAGE_BASE_URL}/uploads/${item.Img}` : null
@@ -530,7 +530,11 @@ exports.uploadArticleImage = async (req, res) => {
 }
 
 exports.likeArticle = async (req, res) => {
-  let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
+  console.log("Hello hllo hello");
+  console.log(req.headers, "Headers");
+  const token = req.headers['access-token'] || req.headers['authorization'];
+  const userDetail = await userHelper.detail(token);
+  // let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
   if (userDetail.status === 0) {
     return res.send(userDetail)
   }
@@ -693,6 +697,8 @@ exports.isTopArticlesMarks = async (req, res) => {
 
 exports.listOfTopArticles = async (req, res) => {
   try {
+    const language = req.query.language || req.headers['language'] || 'en';
+
     const filter = {
       isDeleted: false,
       isTopArticle: true
@@ -719,7 +725,9 @@ exports.listOfTopArticles = async (req, res) => {
       {
         $project: {
           _id: 1,
-          categoryName: "$categoryResult.name.en",
+          title: "$title",
+          description: "$description",
+          image: "$Img",
           createdAt: {
             $dateToString: {
               format: "%d-%m-%Y",
@@ -727,27 +735,169 @@ exports.listOfTopArticles = async (req, res) => {
               timezone: "Asia/Kolkata"
             }
           },
-          description: "$description.en",
-          image: "$Img.en",
-          title: "$title.en"
+          categoryName: "$categoryResult.name"
         }
       }
     ];
-    const listOfTopArticlesQuery = await Article.aggregate(pipeline);
-    const finalData = listOfTopArticlesQuery.map(item => ({
-      ...item,
-      image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : null,
-    }));
-    return res.status(200).json({ status: true, code: "200", message: "List Of  top articles successfully", topArticles: finalData });
+
+    const articles = await Article.aggregate(pipeline);
+
+    const finalData = articles
+      .map(item => {
+        const title = item.title?.[language] || "";
+        const description = item.description?.[language] || "";
+        const image = item.image;
+        const categoryName = item.categoryName?.[language] || "";
+
+        return {
+          _id: item._id,
+          title: title.trim(),
+          description: description.trim(),
+          createdAt: item.createdAt,
+          categoryName: categoryName.trim(),
+          image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : ""
+        };
+      })
+      // ✅ Exclude articles with empty title
+      .filter(item => item.title);
+
+    return res.status(200).json({
+      status: true,
+      code: "200",
+      message: "List of top articles fetched successfully",
+      topArticles: finalData
+    });
 
   } catch (err) {
-    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || 'Internal Server Error'
+    });
   }
-}
+};
 
+
+
+
+// exports.detailsOfArticle = async (req, res) => {
+//   try {
+//     const language = req.query.language || req.headers['language'] || "en";
+
+//     const filter = {
+//       isDeleted: false,
+//       isTopArticle: true,
+//       _id: new mongoose.Types.ObjectId(req.query.articleId),
+//     };
+
+//     const pipeline = [
+//       {
+//         $match: filter
+//       },
+//       {
+//         $lookup: {
+//           from: "categories",
+//           localField: "category",
+//           foreignField: "_id",
+//           as: "categoryResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$categoryResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: "doctors",
+//           localField: "doctorId",
+//           foreignField: "_id",
+//           as: "doctorResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$doctorResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           title: "$title",
+//           description: "$description",
+//           image: "$Img",
+//           createdAt: {
+//             $dateToString: {
+//               format: "%d-%m-%Y",
+//               date: "$createdAt",
+//               timezone: "Asia/Kolkata"
+//             }
+//           },
+//           categoryName: "$categoryResult.name",
+//           authorName: "$doctorResult.doctorName",
+//           likeCount: 1,
+//           doctorImage: "$doctorResult.doctorImage",
+//           // quiz: 1
+//         }
+//       }
+//     ];
+
+//     const detailsOfArticleQuery = await Article.aggregate(pipeline);
+
+//     if (detailsOfArticleQuery.length === 0) {
+//       return res.status(404).json({
+//         status: false,
+//         code: "404",
+//         message: "Article not found",
+//         articlesDetails: null
+//       });
+//     }
+
+//     const article = detailsOfArticleQuery[0];
+
+//     // Get language-specific fields with fallback to English
+//     const title = article.title?.[language]  || "";
+//     const description = article.description?.[language] || "";
+//     const image = article.image || "";
+//     const categoryName = article.categoryName?.[language] || "";
+//     const authorName = article.authorName?.[language] || "";
+//     const finalData = {
+//       _id: article._id,
+//       title: title.trim(),
+//       description: description.trim(),
+//       categoryName: categoryName.trim(),
+//       createdAt: article.createdAt,
+//       authorName: authorName,
+//       likeCount: article.likeCount || 0,
+//       image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : null,
+//       doctorImage: article.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${article.doctorImage}` : null
+//     };
+
+//     return res.status(200).json({
+//       status: true,
+//       code: "200",
+//       message: "Details of article fetched successfully",
+//       articlesDetails: finalData
+//     });
+
+//   } catch (err) {
+//     return res.status(500).json({
+//       status: false,
+//       code: "500",
+//       message: err.message || 'Internal Server Error'
+//     });
+//   }
+// };
 
 exports.detailsOfArticle = async (req, res) => {
   try {
+    const token = req.headers['access-token'] || req.headers['authorization'];
+    const userDetail = await userHelper.detail(token);
+    const language = req.query.language || req.headers["language"] || "en";
+    const userId = userDetail.data.user_id; // 👈 Make sure this is passed
+
     const filter = {
       isDeleted: false,
       isTopArticle: true,
@@ -756,68 +906,130 @@ exports.detailsOfArticle = async (req, res) => {
 
     const pipeline = [
       {
-        $match: filter
+        $match: filter,
       },
       {
         $lookup: {
           from: "categories",
           localField: "category",
           foreignField: "_id",
-          as: "categoryResult"
-        }
+          as: "categoryResult",
+        },
       },
       {
         $unwind: {
           path: "$categoryResult",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: "doctors",
           localField: "doctorId",
           foreignField: "_id",
-          as: "doctorResult"
-        }
+          as: "doctorResult",
+        },
       },
       {
         $unwind: {
           path: "$doctorResult",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      // ✅ Article Like Lookup by userId
+      {
+        $lookup: {
+          from: "articlelikes",
+          let: {
+            articleId: "$_id",
+            userId: new mongoose.Types.ObjectId(userId),
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$article_id", "$$articleId"] },
+                    { $eq: ["$user_id", "$$userId"] },
+                    { $eq: ["$isLiked", true] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: "likeArticleResult",
+        },
+      },
+      {
+        $addFields: {
+          isLiked: { $gt: [{ $size: "$likeArticleResult" }, 0] },
+        },
       },
       {
         $project: {
           _id: 1,
-          categoryName: "$categoryResult.name.en",
+          title: "$title",
+          description: "$description",
+          image: "$Img",
           createdAt: {
             $dateToString: {
               format: "%d-%m-%Y",
               date: "$createdAt",
-              timezone: "Asia/Kolkata"
-            }
+              timezone: "Asia/Kolkata",
+            },
           },
-          description: "$description.en",
-          image: "$Img.en",
-          title: "$title.en",
+          categoryName: "$categoryResult.name",
           authorName: "$doctorResult.doctorName",
           likeCount: 1,
           doctorImage: "$doctorResult.doctorImage",
-          // quiz: 1, //When we need this after that i'll uncommnet 
-        }
-      }
+          isLiked: 1,
+        },
+      },
     ];
 
-    const detailsOfArticleQuery = await Article.aggregate(pipeline);
-    const finalData = detailsOfArticleQuery.map(item => ({
-      ...item,
-      image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : null,
-      doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null
-    }));
-    return res.status(200).json({ status: true, code: "200", message: "Details of articles successfully", articlesDetails: finalData.length > 0 ? finalData[0] : finalData });
+    const result = await Article.aggregate(pipeline);
 
+    if (!result.length) {
+      return res.status(404).json({
+        status: false,
+        code: "404",
+        message: "Article not found",
+        articlesDetails: null,
+      });
+    }
 
+    const article = result[0];
+
+    // Dynamically fetch based on language with fallback
+    const title = article.title?.[language] || "";
+    const description = article.description?.[language] || "";
+    const image = article.image || "";
+    const categoryName = article.categoryName?.[language] || "";
+    const authorName = article.authorName?.[language] || "";
+    const finalData = {
+      _id: article._id,
+      title: title.trim(),
+      description: description.trim(),
+      categoryName: categoryName.trim(),
+      createdAt: article.createdAt,
+      authorName: authorName,
+      likeCount: article.likeCount || 0,
+      image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : null,
+      doctorImage: article.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${article.doctorImage}` : null,
+      isLiked: article.isLiked,
+    };
+
+    return res.status(200).json({
+      status: true,
+      code: "200",
+      message: "Details of article fetched successfully",
+      articlesDetails: finalData,
+    });
   } catch (err) {
-    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || "Internal Server Error",
+    });
   }
-}
+};

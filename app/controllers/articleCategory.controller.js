@@ -43,11 +43,25 @@ exports.getAll = async (req, res) => {
   try {
     const filter = { isDeleted: false };
 
+    const offset = +req.query.offset || 0; // 0-based indexing
+    const perPage = +req.query.perPage || 10;
+    const q = req.query.q || "";
+    let count = await Category.countDocuments(filter)
+
     const language = req.query.language || req.headers["language"] || "en";
     const category = await Category.find(filter).sort({ _id: -1 }).select("_id name icon isTopCategory addedDate").lean();
 
-    const finalData = category
-      .filter(item => item.name && item.name[language]) // only if category has name in selected language
+     const filteredCategory = category.filter((item) => {
+            const categoryInLang = item.name && item.name[language];
+            if (!categoryInLang) return false;
+            if (q) {
+                return categoryInLang.toLowerCase().includes(q.toLowerCase());
+            }
+            return true;
+        });
+
+    const data = filteredCategory
+      .filter(item => item.name && item.name[language]).slice(offset, offset + perPage)
       .map(item => {
         return {
           _id: item._id,
@@ -55,11 +69,11 @@ exports.getAll = async (req, res) => {
           experience: item.experience,
           isTopCategory: item.isTopCategory,
           addedDate: item.addedDate,
-          shortCode:language,
+          shortCode: language,
           icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null
         };
       });
-    return res.status(200).json({ status: true, code: "200", message: "Category filtered by language successfully", data: finalData });
+    return res.status(200).json({ status: true, code: "200", message: "Category filtered by language successfully", data, count: count });
   } catch (err) {
     return res.status(500).json({ status: false, messages: err.message || 'Internal Server Error' });
   }
@@ -173,6 +187,8 @@ exports.isTopCategoryMark = async (req, res) => {
 
 exports.listOfTopCategory = async (req, res) => {
   try {
+    const language = req.query.language || req.headers['language'] || 'en';
+
     const filter = {
       isTopCategory: true
     };
@@ -184,18 +200,39 @@ exports.listOfTopCategory = async (req, res) => {
       {
         $project: {
           icon: 1,
-          name: "$name.en"
+          name: 1
         }
       }
     ];
+
     const listOfTopCategoryQuery = await Category.aggregate(pipeline);
-    const finalData = listOfTopCategoryQuery.map(item => ({
-      ...item,
-      icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null,
-    }));
-    return res.status(200).json({ status: true, code: "200", message: "List Of  top category successfully", topCategories: finalData });
+
+    // Filter out items where name in selected language is missing or empty
+    const finalData = listOfTopCategoryQuery
+      .map(item => {
+        const name = item.name?.[language] || "";
+        return {
+          _id: item._id,
+          icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null,
+          name: name.trim()
+        };
+      })
+      .filter(item => item.name); // ⛔ remove if name is "" or undefined/null
+
+    return res.status(200).json({
+      status: true,
+      code: "200",
+      message: "List of top category fetched successfully",
+      topCategories: finalData
+    });
+
   } catch (err) {
-    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || 'Internal Server Error'
+    });
   }
-}
+};
+
 

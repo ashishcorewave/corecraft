@@ -40,19 +40,34 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const filter = { isDeleted: false };
-    const language = req.query.language || req.headers["language"] || "en";
+    const offset = +req.query.offset || 0;
+    const perPage = +req.query.perPage || 10;
+    const q = req.query.q || "";
+    let count = await ContactCategory.countDocuments(filter)
 
+    const language = req.query.language || req.headers["language"] || "en";
     const query = await ContactCategory.find(filter).sort({ _id: -1 }).select('_id name icon createdAt').lean();
-    const finalData = query
-      .filter(item => item.name && item.name[language]) // only include if name in selected language exists
+
+    const filteredCategory = query.filter((item) => {
+      const categoryNameInLang = item.name && item.name[language];
+      if (!categoryNameInLang) return false;
+      if (q) {
+        return categoryNameInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
+
+
+    const data = filteredCategory.slice(offset, offset + perPage)
+      .filter(item => item.name && item.name[language])
       .map((item) => ({
         _id: item._id,
         name: item.name[language],
         createdAt: item.createdAt,
-        shortCode:language,
+        shortCode: language,
         icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null
       }));
-    return res.status(200).json({ status: true, code: "200", message: "contact Category filtered by language successfully", data: finalData });
+    return res.status(200).json({ status: true, code: "200", message: "contact Category filtered by language successfully", data, count: count });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }
