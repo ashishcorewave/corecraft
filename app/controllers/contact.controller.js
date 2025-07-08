@@ -99,6 +99,7 @@ exports.getAll = async (req, res) => {
           name: { $ifNull: [`$name.${language}`, ""] },
           email: 1,
           pincode:1,
+          shortCode:language,
           contact_number: 1,
           whatsapp_number: 1,
           specialization: { $ifNull: [`$specialization.${language}`, ""] },

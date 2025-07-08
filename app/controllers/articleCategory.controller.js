@@ -55,6 +55,7 @@ exports.getAll = async (req, res) => {
           experience: item.experience,
           isTopCategory: item.isTopCategory,
           addedDate: item.addedDate,
+          shortCode:language,
           icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null
         };
       });

@@ -49,6 +49,7 @@ exports.getAll = async (req, res) => {
         _id: item._id,
         name: item.name[language],
         createdAt: item.createdAt,
+        shortCode:language,
         icon: item.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}` : null
       }));
     return res.status(200).json({ status: true, code: "200", message: "contact Category filtered by language successfully", data: finalData });

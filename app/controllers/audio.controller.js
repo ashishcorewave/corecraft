@@ -142,10 +142,11 @@ exports.getAll = async (req, res) => {
       .map(item => ({
         _id: item._id,
         title: item.title[language],
-        audio_link: item.audio_link?.[language]? `${process.env.BASE_URL}/${item.audio_link[language]}`: null,
+        audio_link: item.audio_link?.[language] ? `${process.env.BASE_URL}/${item.audio_link[language]}` : null,
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
-        createdAt: item.createdAt
+        createdAt: item.createdAt,
+        shortCode: language,
       }));
 
     return res.status(200).json({ status: true, code: "200", message: "Audio filtered by language successfully", data: finalData });
@@ -206,8 +207,8 @@ exports.getById = async (req, res) => {
           title: 1,
           description: 1,
           category: 1,
-          categoryId:"$categoryResult._id",
-          doctorId:"$doctorResult._id",
+          categoryId: "$categoryResult._id",
+          doctorId: "$doctorResult._id",
           doctorName: 1,
           featured_image: 1,
           source: 1,
@@ -223,7 +224,13 @@ exports.getById = async (req, res) => {
       return res.status(404).json({ status: false, code: "404", message: "Audio not found" });
     }
 
-    return res.status(200).json({ status: true, code: "200", data: audioQuery[0] });
+    const item = audioQuery[0];
+
+    // Add BASE_URL to audio_link and featured_image
+    item.audio_link = item.audio_link ? `${process.env.BASE_URL}/${item.audio_link}` : null;
+    item.featured_image = item.featured_image ? `${process.env.BASE_URL}/${item.featured_image}` : null;
+
+    return res.status(200).json({ status: true, code: "200", data: item });
 
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });

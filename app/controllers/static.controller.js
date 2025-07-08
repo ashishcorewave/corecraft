@@ -33,7 +33,12 @@ exports.getById = async (req, res) => {
 
     const data = await Static.findOne(query, selectField).lean();
 
-    return res.status(200).json({  status: true,  code: 200,  message: "Content fetched successfully",  data: data});
+    const responseData = {
+      _id: data._id,
+      title: data.title?.[language] || "",
+      content: data.content?.[language] || ""
+    };
+    return res.status(200).json({ status: true, code: 200, message: "Content fetched successfully", data: responseData });
 
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error" });
@@ -41,46 +46,9 @@ exports.getById = async (req, res) => {
 };
 
 
-// exports.getById = async (req, res) => {
-
-//   let language = req.headers["language"] ? req.headers["language"] : (req.query.language ? req.query.language : "en")
-//   let selectField = { "title.en": 1, "content.en": 1 }
-//   if (language !== "en") {
-//     selectField["title." + language] = 1
-//     selectField["content." + language] = 1
-//   }
-//   let type = req.query.type ? req.query.type : "privacy"
-//   let query = { type: type }
-//   Static.findOne(query, selectField).lean()
-//     .then((data) => {
-//       if (data) {
-//         data.title = data.title[language] ? data.title[language] : ""
-//         data.content = data.content[language] ? data.content[language] : ""
-//         return res.send({
-//           status: true,
-//           message: messages.read.success,
-//           data: data
-//         })
-//       }
-//       return res.status(404).send({
-//         message: messages.read.error
-//       })
-//     })
-//     .catch((err) => {
-//       if (err.kind === "ObjectId") {
-//         return res.status(404).send({
-//           message: messages.read.error
-//         })
-//       }
-//       return res.status(500).send({
-//         message: messages.read.error
-//       })
-//     })
-// }
-
 exports.update = async (req, res) => {
   try {
-    const language = req.headers["language"] || req.body.language ;
+    const language = req.headers["language"] || req.body.language;
     const type = req.body.type || "privacy";
 
     const query = { type };
@@ -94,17 +62,7 @@ exports.update = async (req, res) => {
       updateQuery[`content.${language}`] = req.body.content;
     }
 
-    if (Object.keys(updateQuery).length === 0) {
-      return res.status(400).json({
-        status: false,
-        code: 400,
-        message: "No valid fields provided to update"
-      });
-    }
-
-    const data = await Static.findOneAndUpdate(query, { $set: updateQuery }, { new: true });
-
-
+    await Static.findOneAndUpdate(query, { $set: updateQuery }, { new: true });
     return res.status(200).json({
       status: true,
       code: 200,
@@ -119,6 +77,60 @@ exports.update = async (req, res) => {
     });
   }
 };
+
+exports.createAbout = async (req, res) => {
+  try {
+    const language = req.headers["language"] || req.body.language;
+    const { title, content } = req.body;
+
+    const insertQuery = new Static({
+      title: { [language]: title },
+      content: { [language]: content },
+      type: "about"
+    });
+    await insertQuery.save();
+    return res.status(201).json({ code: "201", status: true, message: 'About created successfully' });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
+
+exports.createTerms = async (req, res) => {
+  try {
+    const language = req.headers["language"] || req.body.language;
+    const { title, content } = req.body;
+
+    const insertQuery = new Static({
+      title: { [language]: title },
+      content: { [language]: content },
+      type: "terms"
+    });
+    await insertQuery.save();
+    return res.status(201).json({ code: "201", status: true, message: 'Terms created successfully' });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
+
+exports.createDisclaimer = async (req, res) => {
+  try {
+    const language = req.headers["language"] || req.body.language;
+    const { title, content } = req.body;
+
+    const insertQuery = new Static({
+      title: { [language]: title },
+      content: { [language]: content },
+      type: "disclaimer"
+    });
+    await insertQuery.save();
+    return res.status(201).json({ code: "201", status: true, message: 'Disclaimer created successfully' });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
+
+
+
 
 
 

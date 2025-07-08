@@ -96,7 +96,8 @@ exports.getAll = async (req, res) => {
           question: 1,
           question_type: 1,
           quiz_id: 1,
-          quiz_title: 1
+          quiz_title: 1,
+          shortCode:language,
         }
       }
     ];

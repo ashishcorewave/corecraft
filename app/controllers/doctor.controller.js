@@ -66,6 +66,7 @@ exports.getAllDoctors = async (req, res) => {
                 experience: item.experience,
                 isTopDoctor: item.isTopDoctor,
                 addedDate: item.addedDate,
+                shortCode:language,
                 doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
             }));
 

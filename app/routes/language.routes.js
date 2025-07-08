@@ -11,6 +11,10 @@ router.get('/privacy', static.getPrivacy)
 router.get('/disclaimer', static.getDisclaimer)
 //CMS
 router.post('/privacy', static.createPrivacy);//New
+router.post('/about', static.createAbout);//New
+router.post('/terms', static.createTerms);//New
+router.post('/disclaimer', static.createDisclaimer);//New
+
 router.get('/static', static.getById)
 router.put('/static', static.update)
 

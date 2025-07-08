@@ -53,9 +53,9 @@ exports.createArticle = async (req, res) => {
 //Created New
 exports.getAll = async (req, res) => {
   try {
-    const filter = { isDeleted: false };
+    // const filter = { isDeleted: false };
     const language = req.query.language || req.headers["language"] || "en";
-    const article = await Article.find(filter).sort({ _id: -1 }).select("_id title availableIn commentCount updatedAt createdAt isTopArticle Img ").lean();
+    const article = await Article.find().sort({ _id: -1 }).select("_id title isDeleted availableIn commentCount updatedAt createdAt isTopArticle Img ").lean();
     const finalData = article
       .filter(item => item.title && item.title[language])
       .map(item => {
@@ -66,7 +66,9 @@ exports.getAll = async (req, res) => {
           availableIn: item.availableIn,
           updatedAt: item.updatedAt,
           createdAt: item.createdAt,
+          isDeleted:item.isDeleted,
           commentCount: item.commentCount,
+          shortCode: language,
           Img: item.Img ? `${process.env.IMAGE_BASE_URL}/uploads/${item.Img}` : null
         };
       });
@@ -141,8 +143,9 @@ exports.getById = async (req, res) => {
     ];
 
     const articlesDetailsQuery = await Article.aggregate(aggregationPipeline);
-
-    return res.status(200).json({ status: true, code: 200, message: "Get Articles details Successfully", data: articlesDetailsQuery[0] });
+    const item = articlesDetailsQuery[0];
+    item.Img = item.Img ? `${process.env.BASE_URL}/${item.Img}` : null;
+    return res.status(200).json({ status: true, code: 200, message: "Get Articles details Successfully", data: item });
 
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
@@ -232,24 +235,54 @@ exports.update = async (req, res) => {
 
 
 //Created New
+// exports.delete = async (req, res) => {
+//   try {
+//     const filter = {
+//       _id: req.params.articleId,
+//     };
+
+//     const update = {
+//       isDeleted: false
+//     };
+
+//     const options = { new: true };
+//     await Article.findByIdAndUpdate(filter, update, options);
+//     return res.status(201).json({ status: true, code: 201, messages: messages.delete.success })
+//   } catch (err) {
+//     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+//   }
+// }
+
 exports.delete = async (req, res) => {
   try {
-    const filter = {
-      _id: req.params.articleId,
-      isDeleted: false
-    };
+    const articleId = req.params.articleId;
 
-    const update = {
-      isDeleted: true
-    };
+    // Step 1: Find the article by ID
+    const article = await Article.findById(articleId);
 
-    const options = { new: true };
-    await Article.findByIdAndUpdate(filter, update, options);
-    return res.status(201).json({ status: true, code: 201, messages: messages.delete.success })
+    // Step 2: Toggle isDeleted
+    const newIsDeletedStatus = !article.isDeleted;
+
+    // Step 3: Update the article
+    article.isDeleted = newIsDeletedStatus;
+    await article.save();
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: newIsDeletedStatus ? "Article marked as deleted" : "Article restored successfully",
+      data: { isDeleted: newIsDeletedStatus }
+    });
+
   } catch (err) {
-    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+    return res.status(500).json({
+      status: false,
+      code: 500,
+      message: err.message || 'Internal Server Error'
+    });
   }
-}
+};
+
 
 
 

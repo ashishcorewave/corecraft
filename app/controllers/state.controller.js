@@ -41,7 +41,8 @@ exports.getAll = async (req, res) => {
         return {
           _id: item._id,
           label: item.label[language],
-          value: item.value
+          value: item.value,
+          shortCode:language,
         };
       });
 

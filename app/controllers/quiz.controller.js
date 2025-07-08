@@ -41,6 +41,7 @@ exports.getAll = async (req, res) => {
         _id: item._id,
         title: item.title[language],
         description: item.description[language],
+        shortCode:language,
       }));
 
     return res.status(200).json({ status: true, code: 200, data: finalData });
