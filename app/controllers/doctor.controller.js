@@ -40,14 +40,13 @@ exports.createDoctor = async (req, res) => {
 exports.getAllDoctors = async (req, res) => {
     try {
         const filter = { isDeleted: false };
-        const offset = +req.query.offset || 0; // 0-based indexing
+        const offset = +req.query.offset || 0;
         const perPage = +req.query.perPage || 10;
         const q = req.query.q || "";
         const language = req.query.language || req.headers["language"] || "en";
         let count = await Doctor.countDocuments(filter)
         // Fetch filtered doctors
-        const doctors = await Doctor.find(filter).sort({ _id: -1 }).select('_id doctorName experience addedDate isTopDoctor doctorImage').lean();
-
+        const doctors = await Doctor.find(filter).populate({ path: "category", select: `name.${language}` }).sort({ _id: -1 }).select('_id doctorName experience addedDate isTopDoctor doctorImage').lean();
         // Filter by selected language and optional search string
         const filteredDoctors = doctors.filter((item) => {
             const doctorNameInLang = item.doctorName && item.doctorName[language];
@@ -58,19 +57,18 @@ exports.getAllDoctors = async (req, res) => {
             return true;
         });
         // Pagination
-        const data = filteredDoctors
-            .slice(offset, offset + perPage)
-            .map((item) => ({
-                _id: item._id,
-                doctorName: item.doctorName[language],
-                experience: item.experience,
-                isTopDoctor: item.isTopDoctor,
-                addedDate: item.addedDate,
-                shortCode:language,
-                doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
-            }));
+        const data = filteredDoctors.slice(offset, offset + perPage).map((item) => ({
+            _id: item._id,
+            doctorName: item.doctorName[language],
+            experience: item.experience,
+            isTopDoctor: item.isTopDoctor,
+            addedDate: item.addedDate,
+            shortCode: language,
+            doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
+            categoryName: item.category.map(cat => cat?.name?.[language] || "").filter(Boolean)
+        }));
 
-        return res.status(200).json({ status: true, code: "200", message: "Doctors fetched successfully",   data, count: count  });
+        return res.status(200).json({ status: true, code: "200", message: "Doctors fetched successfully", data, count: count });
     } catch (err) {
         return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
     }

@@ -132,15 +132,27 @@ exports.getAll = async (req, res) => {
     const filter = { isDeleted: false };
     const language = req.query.language || req.headers["language"] || "en";
 
-    const audio = await Audio.find(filter)
-      .sort({ _id: -1 })
-      .select("_id title description audio_link  availableIn createdAt")
-      .lean();
+    const offset = +req.query.offset || 0; // 0-based indexing
+    const perPage = +req.query.perPage || 10;
+    let count = await Audio.countDocuments(filter)
+    const q = req.query.q || "";
 
-    const finalData = audio
+    const audio = await Audio.find().sort({ _id: -1 }).select("_id title description audio_link  availableIn isDeleted createdAt").lean();
+
+    const filteredAudio = audio.filter((item) => {
+      const audioInLang = item.title && item.title[language];
+      if (!audioInLang) return false;
+      if (q) {
+        return audioInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
+
+    const data = filteredAudio.slice(offset, offset + perPage)
       .filter(item => item.title && item.title[language])
       .map(item => ({
         _id: item._id,
+        isDeleted: item.isDeleted,
         title: item.title[language],
         audio_link: item.audio_link?.[language] ? `${process.env.BASE_URL}/${item.audio_link[language]}` : null,
         description: item.description?.[language] || null,
@@ -149,7 +161,7 @@ exports.getAll = async (req, res) => {
         shortCode: language,
       }));
 
-    return res.status(200).json({ status: true, code: "200", message: "Audio filtered by language successfully", data: finalData });
+    return res.status(200).json({ status: true, code: "200", message: "Audio filtered by language successfully", data, count: count });
 
   } catch (err) {
     return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
@@ -518,28 +530,33 @@ exports.searchAudio = async (req, res) => {
 //     })
 // }
 
+exports.delete = async (req, res) => {
+  try {
+    const audioId = req.params.audioId;
 
-exports.delete = (req, res) => {
-  Audio.findByIdAndUpdate(req.params.audioId, { isDeleted: true }, { new: true })
-    .then((data) => {
-      if (data) {
-        return res.send({ status: true, message: messages.delete.success })
-      }
-      return res.status(404).send({
-        message: messages.delete.error
-      })
-    })
-    .catch((err) => {
-      if (err.kind === "ObjectId" || err.name === "NotFound") {
-        return res.status(404).send({
-          message: messages.delete.error
-        })
-      }
-      return res.status(500).send({
-        message: messages.delete.error
-      })
-    })
-}
+    // Step 1: Find the audio by ID
+    const audio = await Audio.findById(audioId);
+
+    // Step 2: Toggle isDeleted
+    const newIsDeletedStatus = !audio.isDeleted;
+
+    // Step 3: Update 
+    audio.isDeleted = newIsDeletedStatus;
+    await audio.save();
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: newIsDeletedStatus ? "Audio marked as deleted" : "Audio restored successfully",
+      data: { isDeleted: newIsDeletedStatus }
+    });
+
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+};
+
+
 
 exports.likeAudio = async (req, res) => {
   let userDetail = await userHelper.detail(req.headers["access-token"])

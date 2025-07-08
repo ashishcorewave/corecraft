@@ -62,6 +62,9 @@ exports.getAll = async (req, res) => {
   try {
     const filter = { isDeleted: false };
     const q = (req.query.q || "").trim();
+    const offset = +req.query.offset || 0; // 0-based indexing
+    const perPage = +req.query.perPage || 10;
+
     const language = req.query.language || req.headers["language"] || "en";
 
     let count = await Contact.countDocuments(filter)
@@ -126,6 +129,7 @@ exports.getAll = async (req, res) => {
           whatsapp_number: 1,
           pincode: 1,
           loc: 1,
+          photo: 1,
           shortCode: language,
           name: { $ifNull: [`$name.${language}`, ""] },
           specialization: { $ifNull: [`$specialization.${language}`, ""] },
@@ -153,96 +157,24 @@ exports.getAll = async (req, res) => {
       }
     ];
 
-    const data = await Contact.aggregate(aggregationPipeline).sort({ _id: -1 });
+    aggregationPipeline.push(
+      { $sort: { _id: -1 } },
+      { $skip: offset },
+      { $limit: perPage }
+    );
 
-    return res.status(200).json({status: true, code: "200", message: "Contacts fetched successfully with language filtering, search, and pagination", data, count: count});
+    const dataQuery = await Contact.aggregate(aggregationPipeline);
+    const data = dataQuery.map(item => ({
+      ...item,
+      photo: item.photo ? `${process.env.IMAGE_BASE_URL}/uploads/${item.photo}` : null
+    }));
+    return res.status(200).json({ status: true, code: "200", message: "Contacts fetched successfully with language filtering, search, and pagination", data, count: count });
   } catch (err) {
-    return res.status(500).json({   status: false,  code: 500,  message: err.message || "Internal Server Error"});
+    return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error" });
   }
 };
 
-
-// exports.getAll = async (req, res) => {
-//   try {
-//     const filter = { isDeleted: false };
-//     const q = req.query.q || "";
-//     const language = req.query.language || req.headers["language"] || "en";
-
-//     const aggregationPipeline = [
-//       { $match: filter },
-//       {
-//         $lookup: {
-//           from: "contactcategories",
-//           localField: "category",
-//           foreignField: "_id",
-//           as: "categoryResult"
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: "$categoryResult",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-//       {
-//         $lookup: {
-//           from: "states",
-//           localField: "state",
-//           foreignField: "_id",
-//           as: "stateResult"
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: "$stateResult",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           category: 1,
-//           name: { $ifNull: [`$name.${language}`, ""] },
-//           email: 1,
-//           pincode: 1,
-//           shortCode: language,
-//           contact_number: 1,
-//           whatsapp_number: 1,
-//           specialization: { $ifNull: [`$specialization.${language}`, ""] },
-//           education: { $ifNull: [`$education.${language}`, ""] },
-//           office_hours: { $ifNull: [`$office_hours.${language}`, ""] },
-//           institution: { $ifNull: [`$institution.${language}`, ""] },
-//           city: { $ifNull: [`$city.${language}`, ""] },
-//           address: { $ifNull: [`$address.${language}`, ""] },
-//           remarks: { $ifNull: [`$remarks.${language}`, ""] },
-//           loc: 1,
-//           state: { $ifNull: [`$stateResult.label.${language}`, ""] },
-//           categoryResult: {
-//             _id: "$categoryResult._id",
-//             name: { $ifNull: [`$categoryResult.name.${language}`, ""] },
-//             icon: "$categoryResult.icon",
-//             created_by: "$categoryResult.created_by",
-//             contacts: "$categoryResult.contacts"
-//           }
-//         }
-//       },
-//       {
-//         $match: {
-//           name: { $ne: "" }  // Filter: Only include items with non-empty name in that language
-//         }
-//       }
-//     ];
-
-//     const finalData = await Contact.aggregate(aggregationPipeline).sort({ _id: -1 });
-//     return res.status(200).json({ status: true, code: "200", message: `contact category filtered by language successfully`, data: finalData });
-//   } catch (err) {
-//     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
-//   }
-// };
-
 //created new
-
-
 
 exports.update = async (req, res) => {
   try {
@@ -274,6 +206,9 @@ exports.update = async (req, res) => {
     if (req.body.contact_number) updateQuery.contact_number = req.body.contact_number;
     if (req.body.whatsapp_number) updateQuery.whatsapp_number = req.body.whatsapp_number;
     if (req.body.category) updateQuery.category = req.body.category;
+    if (req.body.pincode) updateQuery.pincode = req.body.pincode;
+    if (req.body.website) updateQuery.website = req.body.website;
+     if (req.body.stateId) updateQuery.stateId = req.body.stateId;
 
     // Location update
     if (req.body.latitude && req.body.longitude) {
@@ -358,6 +293,7 @@ exports.getById = async (req, res) => {
           pincode: 1,
           website: 1,
           loc: 1,
+          photo:1,
           name: { $ifNull: [`$name.${language}`, ""] },
           city: { $ifNull: [`$city.${language}`, ""] },
           specialization: { $ifNull: [`$specialization.${language}`, ""] },
@@ -374,6 +310,7 @@ exports.getById = async (req, res) => {
       }
     ];
     const contactQuery = await Contact.aggregate(aggregationPipeline);
+    contactQuery[0].photo = contactQuery[0].photo ? `${process.env.IMAGE_BASE_URL}/uploads/${contactQuery[0].photo}` : null
     return res.status(200).json({ status: true, code: 200, message: messages.read.success, data: contactQuery[0] })
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });

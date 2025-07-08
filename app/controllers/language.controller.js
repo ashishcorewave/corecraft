@@ -11,7 +11,7 @@ exports.getAll = async (req, res) => {
     const q = req.query.q || "";
 
     // Get all languages
-    const allLanguages = await Language.find(filter).select("_id title shortCode addedDate").lean();
+    const allLanguages = await Language.find(filter).sort({_id:-1}).select("_id title shortCode addedDate").lean();
 
     // Filter based on search
     const filteredLanguages = allLanguages.filter((lang) => {

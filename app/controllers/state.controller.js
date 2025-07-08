@@ -32,7 +32,7 @@ exports.getAll = async (req, res) => {
   try {
     const language = req.headers["language"] || req.query.language || "en";
     const filter = { isDeleted: false };
-    const offset = +req.query.offset || 0; // 0-based indexing
+    const offset = +req.query.offset || 0; 
     const perPage = +req.query.perPage || 10;
     const q = req.query.q || "";
     let count = await State.countDocuments(filter)
@@ -58,13 +58,7 @@ exports.getAll = async (req, res) => {
         };
       });
 
-    return res.status(200).json({
-      status: true,
-      code: "200",
-      message: "State filtered by language successfully",
-      data,
-      count: count
-    });
+    return res.status(200).json({ status: true, code: "200", message: "State filtered by language successfully", data, count: count});
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }

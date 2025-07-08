@@ -53,10 +53,24 @@ exports.createArticle = async (req, res) => {
 //Created New
 exports.getAll = async (req, res) => {
   try {
-    // const filter = { isDeleted: false };
+    const filter = { isDeleted: false };
+    const offset = +req.query.offset || 0; 
+    const perPage = +req.query.perPage || 10;
+    const q = req.query.q || "";
+    let count = await Article.countDocuments(filter)
     const language = req.query.language || req.headers["language"] || "en";
     const article = await Article.find().sort({ _id: -1 }).select("_id title isDeleted availableIn commentCount updatedAt createdAt isTopArticle Img ").lean();
-    const finalData = article
+
+    const filterArticle = article.filter((item) => {
+      const articleInLang = item.title && item.title[language];
+      if (!articleInLang) return false;
+      if (q) {
+        return articleInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
+
+    const data = filterArticle.slice(offset, offset + perPage)
       .filter(item => item.title && item.title[language])
       .map(item => {
         return {
@@ -72,7 +86,7 @@ exports.getAll = async (req, res) => {
           Img: item.Img ? `${process.env.IMAGE_BASE_URL}/uploads/${item.Img}` : null
         };
       });
-    return res.status(200).json({ status: true, code: "200", message: "Article filtered by language successfully", data: finalData });
+    return res.status(200).json({ status: true, code: "200", message: "Article filtered by language successfully", data, count: count });
 
   } catch (err) {
     return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
@@ -235,23 +249,8 @@ exports.update = async (req, res) => {
 
 
 //Created New
-// exports.delete = async (req, res) => {
-//   try {
-//     const filter = {
-//       _id: req.params.articleId,
-//     };
 
-//     const update = {
-//       isDeleted: false
-//     };
 
-//     const options = { new: true };
-//     await Article.findByIdAndUpdate(filter, update, options);
-//     return res.status(201).json({ status: true, code: 201, messages: messages.delete.success })
-//   } catch (err) {
-//     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
-//   }
-// }
 
 exports.delete = async (req, res) => {
   try {
@@ -275,11 +274,7 @@ exports.delete = async (req, res) => {
     });
 
   } catch (err) {
-    return res.status(500).json({
-      status: false,
-      code: 500,
-      message: err.message || 'Internal Server Error'
-    });
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }
 };
 
@@ -628,48 +623,6 @@ exports.isQuizCompleted = async (userDetail, data) => {
     return false
   }
 }
-
-
-
-// exports.createArticle = async (req, res) => {
-//   let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"]);
-//   const article = new Article({
-//     title: { en: req.body.title || "" },
-//     description: { en: req.body.description || "" },
-//     content: { en: req.body.content || "" },
-//     category: req.body.category,
-//     doctorId: req.body.doctorId,
-//     contact_level: req.body.contact_level,
-//     tags: { en: req.body.tags || "" },
-//     availableIn: req.body.availableIn || "en",
-//     Img: { en: "" },
-//     sort_order: { en: parseInt(req.body.sort_order) || 0 },
-//     created_by: userDetail.data.user_id
-//   })
-
-//   if (req.body.quiz) {
-//     article.quiz = req.body.quiz
-//   }
-
-//   let articleImage = req.files.Img
-//   if (articleImage) {
-//     let imageData = await upload.uploadImage(articleImage);
-//     if (imageData.status === true) {
-//       article.Img = { en: imageData.name }
-//     } else {
-//       return res.send({ status: false, message: imageData.message })
-//     }
-//   }
-
-//   article
-//     .save()
-//     .then((data) => {
-//       return res.send({ status: true, code: "201", message: messages.create.success })
-//     })
-//     .catch((err) => {
-//       return res.status(500).send({ message: err.message || messages.create.error })
-//     })
-// }
 
 
 exports.isTopArticlesMarks = async (req, res) => {
