@@ -239,7 +239,7 @@ exports.getById = async (req, res) => {
     const item = audioQuery[0];
 
     // Add BASE_URL to audio_link and featured_image
-    item.audio_link = item.audio_link ? `${process.env.BASE_URL}/uploads/${item.audio_link}` : null;
+    item.audio_link = item.audio_link ? `${process.env.BASE_URL}/uploads/audio/${item.audio_link}` : null;
     item.featured_image = item.featured_image ? `${process.env.BASE_URL}/uploads/${item.featured_image}` : null;
 
     return res.status(200).json({ status: true, code: "200", data: item });
