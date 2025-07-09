@@ -13,4 +13,7 @@ router.post("/video/comment", videos.createComment)
 router.get("/videoComments", videos.getAllComments)
 router.delete("/video/comment/:commentId", videos.deleteComment)
 router.post("/likeVideo", videos.likeVideo)
+
+router.post('/mark-top-video-cast', videos.isTopVideoCastMark);//Not Use
+router.get('/top-video-cast', videos.listOfTopVideoCast);
 module.exports = router;

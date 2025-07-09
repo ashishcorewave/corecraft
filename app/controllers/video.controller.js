@@ -56,7 +56,7 @@ exports.create = async (req, res) => {
 
 exports.getAll = async (req, res) => {
   try {
-    const filter = {isDeleted:false};
+    const filter = { isDeleted: false };
     const language = req.query.language || req.headers["language"] || "en";
     const offset = +req.query.offset || 0; // 0-based indexing
     const perPage = +req.query.perPage || 10;
@@ -66,13 +66,13 @@ exports.getAll = async (req, res) => {
     const video = await Video.find().sort({ _id: -1 }).select("_id title video_link isDeleted description availableIn createdAt").lean();
 
     const filteredVideo = video.filter((item) => {
-            const videoInLang = item.title && item.title[language];
-            if (!videoInLang) return false;
-            if (q) {
-                return videoInLang.toLowerCase().includes(q.toLowerCase());
-            }
-            return true;
-        });
+      const videoInLang = item.title && item.title[language];
+      if (!videoInLang) return false;
+      if (q) {
+        return videoInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
 
     const data = filteredVideo.slice(offset, offset + perPage)
       .filter(item => item.title && item.title[language])
@@ -80,12 +80,13 @@ exports.getAll = async (req, res) => {
         _id: item._id,
         title: item.title[language],
         isDeleted: item.isDeleted,
+        shortCode: language,
         video_link: item.video_link?.[language] ? `${process.env.BASE_URL}/${item.video_link[language]}` : null,
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
         createdAt: item.createdAt
       }));
-    return res.status(200).json({ status: true, code: "200", message: "Video filtered by language successfully", data, count:count });
+    return res.status(200).json({ status: true, code: "200", message: "Video filtered by language successfully", data, count: count });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }
@@ -283,7 +284,7 @@ exports.delete = async (req, res) => {
   try {
     const videoId = req.params.videoId;
 
-    // Step 1: Find the audio by ID
+    // Step 1: Find the Video by ID
     const video = await Video.findById(videoId);
 
     // Step 2: Toggle isDeleted
@@ -490,3 +491,99 @@ exports.deleteComment = (req, res) => {
       })
     })
 }
+
+
+exports.isTopVideoCastMark = async (req, res) => {
+  try {
+    const filter = { isDeleted: false, _id: req.body.videoId };
+    const video = await Video.findOne({
+      _id: req.body.videoId,
+      isDeleted: false,
+    });
+
+    const update = {
+      isTopVideoCast: video.isTopVideoCast === true ? false : true,
+    };
+    const options = { new: true };
+
+    await Video.findByIdAndUpdate(filter, update, options);
+
+    return res.status(201).json({ status: true, code: "201", message: update.isTopVideoCast ? "Marked as top Video cast" : "Unmarked as top Video cast" });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+  }
+}
+
+
+
+exports.listOfTopVideoCast = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const filter = {
+      doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
+      isDeleted: false
+    };
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { _id: -1 } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          title: { $ifNull: [`$title.${language}`, ""] },
+          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          duration: { $ifNull: [`$duration.${language}`, ""] },
+          featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          duration: 1,
+          createdAt: {
+            $dateToString: {
+              format: "%d-%m-%Y",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          categoryName: 1,
+          featured_image: 1,
+        }
+      }
+    ];
+
+    const audioQuery = await Video.aggregate(pipeline);
+    const finalData = audioQuery.map(item => ({
+      ...item,
+      featured_image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : null
+    }));
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: "List of top video cast",
+      data: finalData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || "Internal Server Error"
+    });
+  }
+};

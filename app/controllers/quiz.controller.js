@@ -31,20 +31,34 @@ exports.create = async (req, res) => {
 exports.getAll = async (req, res) => {
   try {
     const filter = { isDeleted: false };
+
+    const offset = +req.query.offset || 0; // 0-based indexing
+    const perPage = +req.query.perPage || 10;
+    const q = req.query.q || "";
+
     const language = req.query.language || req.headers["language"] || "en";
+    const count = await Quiz.countDocuments(filter);
+    const getAllQuery = await Quiz.find(filter).select("_id title description Img").sort({ _id: -1 }).lean();
 
-    const getAllQuery = await Quiz.find(filter).select("_id title description Img").lean();
+    const filteredQuiz = getAllQuery.filter((item) => {
+      const quizInLang = item.title && item.title[language];
+      if (!quizInLang) return false;
+      if (q) {
+        return quizInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
 
-    const finalData = getAllQuery
+    const data = filteredQuiz.slice(offset, offset + perPage)
       .filter(item => item.title?.[language] && item.description?.[language])
       .map(item => ({
         _id: item._id,
         title: item.title[language],
         description: item.description[language],
-        shortCode:language,
+        shortCode: language,
       }));
 
-    return res.status(200).json({ status: true, code: 200, data: finalData });
+    return res.status(200).json({ status: true, code: 200, data, count: count });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }

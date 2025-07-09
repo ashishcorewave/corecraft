@@ -130,7 +130,7 @@ exports.delete = async (req, res) => {
     };
     const options = { new: true };
     await State.findByIdAndUpdate(filter, update, options);
-    return res.status(201).json({ status: false, code: 201, message: messages.delete.success });
+    return res.status(201).json({ status: true, code: 201, message: messages.delete.success });
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
   }

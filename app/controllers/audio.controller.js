@@ -17,7 +17,7 @@ exports.create = async (req, res) => {
     const userDetail = await userHelper.detail(token);
     const language = req.headers["language"] || req.body.language;
     let audioFile = req.files.audio_link;
-    const { title, category, contact_level, description, doctorId, source, duration, sort_order, } = req.body;
+    const { title, category, contact_level, description, audioId, source, duration, sort_order, } = req.body;
     let featuredImage = req.files.featured_image
     const audio = new Audio({
       title: { [language]: title },
@@ -751,74 +751,6 @@ exports.deleteComment = (req, res) => {
 
 // New Api
 
-// exports.getAll = async(req, res) => {
-//   try {
-//     const filter = {
-//       isDeleted: false
-//     };
-
-//     const pipeline = [
-//       { $match: filter },
-//       {
-//         $lookup: {
-//           from: "categories",
-//           localField: "category",
-//           foreignField: "_id",
-//           as: "categoryResult"
-//         }
-//       },
-//       { $unwind: "$categoryResult" },
-//       {
-//         $lookup: {
-//           from: "languages",
-//           localField: "languageId",
-//           foreignField: "_id",
-//           as: "languageResult"
-//         }
-//       },
-//       { $unwind: "$languageResult" },
-//       {
-//         $group: {
-//           _id: "$categoryResult._id",
-//           category: { $first: "$categoryResult" },
-//           audios: {
-//             $push: {
-//               _id: "$_id",
-//               title: "$title.en",
-//               language: "$languageResult.title",
-//               languageCode: "$languageResult.code",
-//               audio_link: "$audio_link.en",
-//               description: "$description.en",
-//               createdAt: "$createdAt",
-
-//             }
-//           }
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 0,
-//           category: {
-//             _id: "$_id",
-//             name: "$category.name.en"
-//           },
-//           audios: 1
-//         }
-//       },
-//       {
-//         $sort: { "category.name": 1 }
-//       }
-//     ];
-
-//     const getQuery = await Audio.aggregate(pipeline);
-//     return res.status(200).json({ code: "200", status: true, message: 'Get All Language Successfully', data: getQuery });
-//   } catch (err) {
-//     return res.status(500).json({ status: false, message: err.message || 'Internal Server Error' });
-//   }
-// }
-
-
-
 exports.getAudioLanguageFilter = async (req, res) => {
   try {
     const languageIds = req.query.languageIds;
@@ -846,8 +778,6 @@ exports.getAudioLanguageFilter = async (req, res) => {
     });
   }
 };
-
-
 
 
 exports.createAudio = async (req, res) => {
@@ -1061,4 +991,96 @@ exports.updateAudioWithTranslation = async (req, res) => {
     });
   }
 };
+
+
+exports.isTopAudioCastMark = async (req, res) => {
+  try {
+    const filter = { isDeleted: false, _id: req.body.audioId };
+
+    const audio = await Audio.findOne({
+      _id: req.body.audioId,
+      isDeleted: false,
+    });
+
+    const update = {
+      isTopAudioCast: audio.isTopAudioCast === true ? false : true,
+    };
+    const options = { new: true };
+
+    await Audio.findByIdAndUpdate(filter, update, options);
+
+    return res.status(201).json({ status: true, code: "201", message: update.isTopAudioCast ? "Marked as top audio cast" : "Unmarked as top audio cast" });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+  }
+}
+
+
+
+exports.listOfTopAudioCast = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const filter = {
+      doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
+      isDeleted: false
+    };
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { _id: -1 } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          title: { $ifNull: [`$title.${language}`, ""] },
+          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          duration: { $ifNull: [`$duration.${language}`, ""] },
+          featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          duration: 1,
+          createdAt: 1,
+          categoryName: 1,
+          featured_image: 1,
+        }
+      }
+    ];
+
+    const audioQuery = await Audio.aggregate(pipeline);
+    const finalData = audioQuery.map(item => ({
+      ...item,
+      featured_image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : null
+    }));
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: "List of top audio cast",
+      data: finalData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || "Internal Server Error"
+    });
+  }
+};
+
 

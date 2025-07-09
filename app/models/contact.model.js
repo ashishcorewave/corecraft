@@ -61,7 +61,7 @@ const ContactSchema = mongoose.Schema(
     },
     loc: { // Location for Geo co-ordinates
       type: { type: String, default: "Point" },
-      coordinates: { type: [Number], default: [0, 0] },
+      coordinates: { type: [Number], default: [] },
     },
     remarks: {
       type: Object

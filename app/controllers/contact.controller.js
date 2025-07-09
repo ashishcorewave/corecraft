@@ -337,8 +337,6 @@ exports.delete = async (req, res) => {
 }
 
 
-
-
 exports.searchContact = async (req, res) => {
   const { searchQuery } = req.query
   try {

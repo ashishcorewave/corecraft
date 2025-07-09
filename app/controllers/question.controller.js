@@ -57,20 +57,22 @@ exports.create = async (req, res) => {
 };
 
 //Created New
+
 exports.getAll = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
+    const offset = +req.query.offset || 0;
+    const perPage = +req.query.perPage || 10;
+    const q = (req.query.q || "").trim();
+
+    const baseMatch = {
+      isDeleted: false,
+      [`question.${language}`]: { $exists: true, $ne: "" }
+    };
 
     const aggregationPipeline = [
-      {
-        $match: {
-          isDeleted: false,
-          [`question.${language}`]: { $exists: true, $ne: "" }
-        }
-      },
-      {
-        $sort: { _id: -1 }
-      },
+      { $match: baseMatch },
+      { $sort: { _id: -1 } },
       {
         $lookup: {
           from: "quizzes",
@@ -91,25 +93,124 @@ exports.getAll = async (req, res) => {
           quiz_title: { $ifNull: [`$quizzResult.title.${language}`, ""] }
         }
       },
+    ];
+
+    // Search in both question and quiz_title (after they're created)
+    if (q) {
+      aggregationPipeline.push({
+        $match: {
+          $or: [
+            { question: { $regex: q, $options: "i" } },
+            { quiz_title: { $regex: q, $options: "i" } }
+          ]
+        }
+      });
+    }
+
+    aggregationPipeline.push(
       {
         $project: {
           question: 1,
           question_type: 1,
           quiz_id: 1,
           quiz_title: 1,
-          shortCode:language,
+          shortCode: language
         }
-      }
-    ];
+      },
+      { $skip: offset },
+      { $limit: perPage }
+    );
 
-    const fetchQuery = await Question.aggregate(aggregationPipeline);
+    const data = await Question.aggregate(aggregationPipeline);
 
-    return res.status(200).json({ status: true, message: "Questions fetched successfully", data: fetchQuery });
+    // For accurate count with filters (q), run a parallel count
+    const countPipeline = [...aggregationPipeline];
+    countPipeline.pop(); // remove $limit
+    countPipeline.pop(); // remove $skip
+    countPipeline.push({ $count: "total" });
+
+    const countResult = await Question.aggregate(countPipeline);
+    const count = countResult[0]?.total || 0;
+
+    return res.status(200).json({
+      status: true,
+      message: "Questions fetched successfully",
+      data,
+      count
+    });
+
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: err.message || "Internal Server Error"
+    });
   }
 };
+
+
+// exports.getAll = async (req, res) => {
+//   try {
+//     const filter = { isDeleted: false };
+//     const language = req.query.language || req.headers["language"] || "en";
+
+//     const offset = +req.query.offset || 0;
+//     const perPage = +req.query.perPage || 10;
+//     const q = req.query.q || "";
+
+//     const matchStage = {
+//       isDeleted: false,
+//       [`question.${language}`]: { $exists: true, $ne: "" }
+//     };
+
+
+//     const count = await Question.countDocuments(filter);
+//     const aggregationPipeline = [
+//       {
+//         $match: matchStage
+//       },
+//       {
+//         $sort: { _id: -1 }
+//       },
+//       {
+//         $lookup: {
+//           from: "quizzes",
+//           localField: "quiz_id",
+//           foreignField: "_id",
+//           as: "quizzResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$quizzResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $addFields: {
+//           question: { $ifNull: [`$question.${language}`, ""] },
+//           quiz_title: { $ifNull: [`$quizzResult.title.${language}`, ""] }
+//         }
+//       },
+//       {
+//         $project: {
+//           question: 1,
+//           question_type: 1,
+//           quiz_id: 1,
+//           quiz_title: 1,
+//           shortCode: language,
+//         }
+//       }
+//     ];
+
+//     const data = await Question.aggregate(aggregationPipeline);
+
+//     return res.status(200).json({ status: true, message: "Questions fetched successfully", data, count: count });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
+//   }
+// };
 
 //Created New
 exports.getById = async (req, res) => {

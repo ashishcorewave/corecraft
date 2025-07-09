@@ -654,7 +654,7 @@ exports.listOfTopArticles = async (req, res) => {
 
     const filter = {
       isDeleted: false,
-      isTopArticle: true
+     doctorId: new mongoose.Types.ObjectId(req.query.doctorId)
     };
 
     const pipeline = [

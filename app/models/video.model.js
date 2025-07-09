@@ -53,7 +53,8 @@ const VideoSchema = mongoose.Schema(
     },
     isDeleted: {
       type: Boolean, default: false
-    }
+    },
+    isTopVideoCast: { type: Boolean, default: false },
   },
   {
     timestamps: true

@@ -54,7 +54,8 @@ const AudioSchema = mongoose.Schema(
     },
     isDeleted: {
       type: Boolean, default: false
-    }
+    },
+    isTopAudioCast: { type: Boolean, default: false },
   },
   {
     timestamps: true

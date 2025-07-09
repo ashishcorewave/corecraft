@@ -32,4 +32,8 @@ router.get('/audio-filter', audios.getAudioLanguageFilter);
 
 router.post('/audio-insert', audios.createAudio);
 router.put('/update-audio/:audioId', audios.updateAudioWithTranslation);
+
+
+router.post('/mark-top-audio-cast', audios.isTopAudioCastMark);//Not Use
+router.get('/top-audio-cast', audios.listOfTopAudioCast);
 module.exports = router
