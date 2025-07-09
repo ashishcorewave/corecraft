@@ -86,7 +86,8 @@ exports.getById = (req, res) => {
     .then((data) => {
       if (data) {
         data.name = data.name[language] ? data.name[language] : ""
-        data.icon = data.icon ? config.categoryImageUrl + data.icon : config.defaultImageUrl
+        // data.icon = data.icon ? config.categoryImageUrl + data.icon : config.defaultImageUrl
+         data.icon = data.icon ? `${process.env.BASE_URL}/uploads/${data.icon}` : null;
         return res.send({
           status: true,
           message: messages.read.success,
