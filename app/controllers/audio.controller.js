@@ -17,7 +17,7 @@ exports.create = async (req, res) => {
     const userDetail = await userHelper.detail(token);
     const language = req.headers["language"] || req.body.language;
     let audioFile = req.files.audio_link;
-    const { title, category, contact_level, description, audioId, source, duration, sort_order, } = req.body;
+    const { title, category, contact_level, description, doctorId, source, duration, sort_order, } = req.body;
     let featuredImage = req.files.featured_image
     const audio = new Audio({
       title: { [language]: title },
