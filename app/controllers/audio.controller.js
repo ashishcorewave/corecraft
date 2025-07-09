@@ -154,7 +154,7 @@ exports.getAll = async (req, res) => {
         _id: item._id,
         isDeleted: item.isDeleted,
         title: item.title[language],
-        audio_link: item.audio_link?.[language] ? `${process.env.BASE_URL}/${item.audio_link[language]}` : null,
+        audio_link: item.audio_link?.[language] ? `${process.env.BASE_URL}/uploads/${item.audio_link[language]}` : null,
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
         createdAt: item.createdAt,
@@ -239,8 +239,8 @@ exports.getById = async (req, res) => {
     const item = audioQuery[0];
 
     // Add BASE_URL to audio_link and featured_image
-    item.audio_link = item.audio_link ? `${process.env.BASE_URL}/${item.audio_link}` : null;
-    item.featured_image = item.featured_image ? `${process.env.BASE_URL}/${item.featured_image}` : null;
+    item.audio_link = item.audio_link ? `${process.env.BASE_URL}/uploads/${item.audio_link}` : null;
+    item.featured_image = item.featured_image ? `${process.env.BASE_URL}/uploads/${item.featured_image}` : null;
 
     return res.status(200).json({ status: true, code: "200", data: item });
 
