@@ -230,9 +230,8 @@ exports.getById = async (req, res) => {
     ];
     const videoQuery = await Video.aggregate(aggregationPipeline);
 
-    if (!videoQuery || !videoQuery.length) {
-      return res.status(404).json({ status: false, code: "404", message: "Video not found" });
-    }
+    videoQuery[0].featured_image = videoQuery[0].featured_image ? `${process.env.BASE_URL}/uploads/${videoQuery[0].featured_image}` : null;
+
 
     return res.status(200).json({ status: true, code: "200", data: videoQuery[0] });
   } catch (err) {
