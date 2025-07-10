@@ -27,4 +27,5 @@ router.post("/create-article", articles.createArticle);// New Api
 router.post('/mark-top-article', articles.isTopArticlesMarks);
 router.get('/top-article', articles.listOfTopArticles);
 router.get('/article-detail', articles.detailsOfArticle);
+router.get('/article-by-category', articles.ArticleByCategory);
 module.exports = router;

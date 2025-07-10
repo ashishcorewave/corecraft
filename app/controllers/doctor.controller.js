@@ -161,21 +161,18 @@ exports.isTopDoctorMark = async (req, res) => {
 
 exports.listOfTopDoctors = async (req, res) => {
     try {
+        const searchData = (req.query.searchData || "").trim();
         const language = req.query.language || req.headers["language"] || "en";
 
         const filter = { isTopDoctor: true, isDeleted: false };
 
         const pipeline = [
-            {
-                $match: filter
-            },
-            {
-                $sort: { _id: -1 }
-            },
+            { $match: filter },
+            { $sort: { _id: -1 } },
             {
                 $lookup: {
                     from: "categories",
-                    localField: "category", // assumed to be array or single value
+                    localField: "category",
                     foreignField: "_id",
                     as: "categoryResult"
                 }
@@ -189,9 +186,14 @@ exports.listOfTopDoctors = async (req, res) => {
                 }
             },
             {
+                $addFields: {
+                    localizedDoctorName: { $ifNull: [`$doctorName.${language}`, ""] }
+                }
+            },
+            {
                 $project: {
                     _id: 1,
-                    doctorName: { $ifNull: [`$doctorName.${language}`, ""] },
+                    doctorName: "$localizedDoctorName",
                     doctorImage: 1,
                     experience: 1,
                     articleCount: { $size: "$articles" },
@@ -206,6 +208,14 @@ exports.listOfTopDoctors = async (req, res) => {
             }
         ];
 
+        // Apply search after projecting localized doctorName
+        if (searchData) {
+            pipeline.push({
+                $match: {
+                    doctorName: { $regex: searchData, $options: "i" }
+                }
+            });
+        }
 
         const listOfTopDoctorsQuery = await Doctor.aggregate(pipeline);
 
@@ -214,21 +224,13 @@ exports.listOfTopDoctors = async (req, res) => {
             doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null
         }));
 
-        return res.status(200).json({
-            status: true,
-            code: "200",
-            message: "List of top doctors fetched successfully",
-            topDoctors: finalData
-        });
+        return res.status(200).json({ status: true, code: "200", message: "List of top doctors fetched successfully", topDoctors: finalData });
 
     } catch (err) {
-        return res.status(500).json({
-            status: false,
-            code: "500",
-            message: err.message || 'Internal Server Error'
-        });
+        return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
     }
 };
+
 
 
 exports.inActiveDoctor = async (req, res) => {
@@ -337,9 +339,6 @@ exports.editDoctor = async (req, res) => {
         }
 
     } catch (err) {
-        return res.status(500).send({
-            status: false,
-            message: err.message || "Internal Server Error"
-        });
+        return res.status(500).send({ status: false, message: err.message || "Internal Server Error" });
     }
 };

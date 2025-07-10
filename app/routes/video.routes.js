@@ -16,4 +16,6 @@ router.post("/likeVideo", videos.likeVideo)
 
 router.post('/mark-top-video-cast', videos.isTopVideoCastMark);//Not Use
 router.get('/top-video-cast', videos.listOfTopVideoCast);
+router.get('/video-cast-by-category', videos.videoCastByCategoryId);
+router.get('/video-details', videos.videoCastDetails);
 module.exports = router;

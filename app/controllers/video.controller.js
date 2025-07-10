@@ -514,10 +514,11 @@ exports.isTopVideoCastMark = async (req, res) => {
 }
 
 
-
+//List of top doctor of video cast
 exports.listOfTopVideoCast = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
+    const searchData = (req.query.searchData || "").trim();
     const filter = {
       doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
       isDeleted: false
@@ -548,23 +549,31 @@ exports.listOfTopVideoCast = async (req, res) => {
           featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
         }
       },
-      {
-        $project: {
-          _id: 1,
-          title: 1,
-          duration: 1,
-          createdAt: {
-            $dateToString: {
-              format: "%d-%m-%Y",
-              date: "$createdAt",
-              timezone: "Asia/Kolkata"
-            }
-          },
-          categoryName: 1,
-          featured_image: 1,
-        }
-      }
     ];
+
+    if (searchData) {
+      pipeline.push({
+        $match: {
+          title: { $regex: searchData, $options: "i" }
+        }
+      })
+    }
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: 1,
+        duration: 1,
+        createdAt: {
+          $dateToString: {
+            format: "%d-%m-%Y",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata"
+          }
+        },
+        categoryName: 1,
+        featured_image: 1,
+      }
+    })
 
     const audioQuery = await Video.aggregate(pipeline);
     const finalData = audioQuery.map(item => ({
@@ -586,3 +595,149 @@ exports.listOfTopVideoCast = async (req, res) => {
     });
   }
 };
+
+//List of video cast of category
+exports.videoCastByCategoryId = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const searchData = (req.query.searchData || "").trim();
+    const filter = {
+      isDeleted: false,
+      category: new mongoose.Types.ObjectId(req.query.categoryId),
+    }
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { _id: -1 } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          title: { $ifNull: [`$title.${language}`, ""] },
+          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          duration: { $ifNull: [`$duration.${language}`, ""] },
+          featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+        }
+      },
+    ];
+
+    if (searchData) {
+      pipeline.push({
+        $match: {
+          title: { $regex: searchData, $options: "i" }
+        }
+      });
+    }
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: 1,
+        duration: 1,
+        createdAt: {
+          $dateToString: {
+            format: "%d-%m-%Y", // Or use "%Y-%m-%d" if preferred
+            date: "$createdAt",
+            timezone: "Asia/Kolkata" // Optional: For IST formatting
+          }
+        },
+        categoryName: 1,
+        featured_image: 1,
+      }
+    })
+
+    const videoQuery = await Video.aggregate(pipeline);
+    const finalData = videoQuery.map(item => ({
+      ...item,
+      featured_image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : null
+    }));
+
+    return res.status(200).json({ status: true, code: 200, message: "List of  video cast by category", data: finalData });
+
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
+
+exports.videoCastDetails = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const filter = {
+      isDeleted: false,
+      _id: new mongoose.Types.ObjectId(req.query.videoId)
+    }
+
+    const pipeline = [
+      {
+        $match: filter
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          title: { $ifNull: [`$title.${language}`, ""] },
+          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          duration: { $ifNull: [`$duration.${language}`, ""] },
+          featured_image: { $ifNull: [`$featured_image.${language}`, ""] },
+          description: { $ifNull: [`$description.${language}`, ""] },
+          source: { $ifNull: [`$source.${language}`, ""] },
+          video_link: { $ifNull: [`$video_link.${language}`, ""] }
+        }
+      },
+      {
+        $project: {
+          categoryName: 1,
+          contact_level: 1,
+          source: 1,
+          createdAt: {
+            $dateToString: {
+              format: "%d-%m-%Y", // Or use "%Y-%m-%d" if preferred
+              date: "$createdAt",
+              timezone: "Asia/Kolkata" // Optional: For IST formatting
+            }
+          },
+          description: 1,
+          title: 1,
+          likeCount: 1,
+          commentCount: 1,
+          featured_image: 1,
+          video_link: 1,
+        }
+      }
+    ];
+    const videoData = await Video.aggregate(pipeline);
+    const data = videoData[0];
+
+    if (data) {
+      data.featured_image = data.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${data.featured_image}` : null;
+    }
+
+    return res.status(200).json({ status: true, code: 200, message: "Details of audio cast", data: data || {} });
+
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}

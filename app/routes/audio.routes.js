@@ -36,4 +36,6 @@ router.put('/update-audio/:audioId', audios.updateAudioWithTranslation);
 
 router.post('/mark-top-audio-cast', audios.isTopAudioCastMark);//Not Use
 router.get('/top-audio-cast', audios.listOfTopAudioCast);
+router.get('/audio-cast-by-category', audios.audioCastByCategoryId);
+router.get('/audio-details', audios.detailsOfAudioCast);
 module.exports = router
