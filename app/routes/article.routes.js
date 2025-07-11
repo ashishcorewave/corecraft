@@ -26,6 +26,7 @@ router.post("/articles/uploadImage", uploadArticle.single("image"), articles.upl
 router.post("/create-article", articles.createArticle);// New Api
 router.post('/mark-top-article', articles.isTopArticlesMarks);
 router.get('/top-article', articles.listOfTopArticles);
+router.get('/top-doctor-article', articles.listOfTopDoctorArticles);
 router.get('/article-detail', articles.detailsOfArticle);
 router.get('/article-by-category', articles.ArticleByCategory);
 module.exports = router;

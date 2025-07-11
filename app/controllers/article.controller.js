@@ -642,79 +642,7 @@ exports.isTopArticlesMarks = async (req, res) => {
 
 //List of top Doctor artilcle
 
-// exports.listOfTopArticles = async (req, res) => {
-//   try {
-//     const language = req.query.language || req.headers['language'] || 'en';
-
-//     const filter = {
-//       isDeleted: false,
-//       doctorId: new mongoose.Types.ObjectId(req.query.doctorId)
-//     };
-
-//     const pipeline = [
-//       {
-//         $match: filter
-//       },
-//       {
-//         $lookup: {
-//           from: "categories",
-//           localField: "category",
-//           foreignField: "_id",
-//           as: "categoryResult"
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: "$categoryResult",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           title: "$title",
-//           description: "$description",
-//           image: "$Img",
-//           createdAt: {
-//             $dateToString: {
-//               format: "%d-%m-%Y",
-//               date: "$createdAt",
-//               timezone: "Asia/Kolkata"
-//             }
-//           },
-//           categoryName: "$categoryResult.name"
-//         }
-//       }
-//     ];
-
-//     const articles = await Article.aggregate(pipeline);
-
-//     const finalData = articles
-//       .map(item => {
-//         const title = item.title?.[language] || "";
-//         const description = item.description?.[language] || "";
-//         const image = item.image;
-//         const categoryName = item.categoryName?.[language] || "";
-
-//         return {
-//           _id: item._id,
-//           title: title.trim(),
-//           description: description.trim(),
-//           createdAt: item.createdAt,
-//           categoryName: categoryName.trim(),
-//           image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : ""
-//         };
-//       })
-//       .filter(item => item.title);
-
-//     return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
-
-//   } catch (err) {
-//     return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
-//   }
-// };
-
-exports.listOfTopArticles = async (req, res) => {
+exports.listOfTopDoctorArticles = async (req, res) => {
   try {
     const language = req.query.language || req.headers['language'] || 'en';
     const searchData = (req.query.searchData || "").trim();
@@ -784,20 +712,9 @@ exports.listOfTopArticles = async (req, res) => {
       categoryName: item.categoryName.trim(),
       image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
     }));
-
-    return res.status(200).json({
-      status: true,
-      code: "200",
-      message: "List of top articles fetched successfully",
-      topArticles: finalData
-    });
-
+    return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
   } catch (err) {
-    return res.status(500).json({
-      status: false,
-      code: "500",
-      message: err.message || 'Internal Server Error'
-    });
+    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
   }
 };
 
@@ -1018,5 +935,81 @@ exports.ArticleByCategory = async (req, res) => {
     return res.status(500).json({ status: false, code: 500, message: err.message })
   }
 }
+
+exports.listOfTopArticles = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers['language'] || 'en';
+    const searchData = (req.query.searchData || "").trim();
+    const filter = {
+      isDeleted: false,
+      isTopArticle: true
+    };
+
+    const pipeline = [
+      { $match: filter },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+          localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+          localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+        }
+      }
+    ];
+
+    // Apply search if searchData exists
+    if (searchData) {
+      pipeline.push({
+        $match: {
+          localizedTitle: { $regex: searchData, $options: "i" }
+        }
+      });
+    }
+
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: "$localizedTitle",
+        description: "$localizedDescription",
+        image: "$Img",
+        createdAt: {
+          $dateToString: {
+            format: "%d-%m-%Y",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata"
+          }
+        },
+        categoryName: "$localizedCategoryName"
+      }
+    });
+
+    const articles = await Article.aggregate(pipeline);
+
+    const finalData = articles.map(item => ({
+      _id: item._id,
+      title: item.title.trim(),
+      description: item.description.trim(),
+      createdAt: item.createdAt,
+      categoryName: item.categoryName.trim(),
+      image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
+    }));
+    return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
+  } catch (err) {
+    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+  }
+};
 
 
