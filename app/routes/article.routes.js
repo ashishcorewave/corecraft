@@ -12,9 +12,9 @@ router.put("/articles/:articleId", articles.update);
 router.delete("/articles/:articleId", articles.delete);
 
 // Article Comments
-router.post("/articles/comments", articles.createComment);
-router.get("/articles/comments", articles.getAllComments);
-router.delete("/articles/comments/:commentId", articles.deleteComment);
+router.post("/insert/articles/comments", articles.createComment);
+router.get("/get/articles/comments", articles.getAllComments);
+router.delete("/delete/articles/comments/:commentId", articles.deleteComment);
 
 // Other Article Actions
 router.post("/articles/read", articles.readArticle);

@@ -18,11 +18,11 @@ router.put("/audio/:audioId", audios.update)
 
 router.delete("/audio/:audioId", audios.delete)
 
-router.post("/audio/comment", audios.createComment)
+router.post("/insert/audio/comment", audios.createComment)
 
-router.get("/audioComments", audios.getAllComments)
+router.get("/get/audio/comments", audios.getAllComments)
 
-router.delete("/audio/comment/:commentId", audios.deleteComment)
+router.delete("/delete/audio/comment/:commentId", audios.deleteComment)
 
 router.post("/likeAudio", audios.likeAudio);
 
@@ -39,4 +39,5 @@ router.get('/top-audio-video-cast', audios.listOfTopAudioCastOrVideoCast);
 router.get('/list-top-audio-video-cast', audios.listOfAllTopAudioCastOrVideoCast);
 router.get('/audio-cast-by-category', audios.audioCastByCategoryId);
 router.get('/audio-details', audios.detailsOfAudioCast);
+router.get('/top-doctor-audio-video', audios.listOfTopDoctAudioOrVideo);//Not use
 module.exports = router

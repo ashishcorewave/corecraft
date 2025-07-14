@@ -1,5 +1,7 @@
 const Audio = require("../models/audio.model.js")
 const Video = require('../models/video.model.js');
+const User = require("../models/user.model.js")
+const Doctor = require('../models/doctor.model.js');
 const AudioComment = require("../models/audio.comment.model.js")
 const AudioLike = require("../models/audio.like.model.js")
 const messages = require("../utility/messages")
@@ -159,7 +161,7 @@ exports.getAll = async (req, res) => {
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
         createdAt: item.createdAt,
-        isTopAudioCast:item.isTopAudioCast,
+        isTopAudioCast: item.isTopAudioCast,
         shortCode: language,
       }));
 
@@ -403,7 +405,7 @@ exports.isLiked = async (userDetail, postId) => {
 }
 
 exports.createComment = async (req, res) => {
-  let userDetail = await userHelper.detail(req.headers["access-token"])
+  let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
   if (userDetail.status === 0) {
     return res.send(userDetail)
   }
@@ -441,52 +443,88 @@ exports.createComment = async (req, res) => {
     })
   }
 }
+const formatDateToDDMMYYYY = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+};
 
-exports.getAllComments = (req, res) => {
-  let query = { isDeleted: false }
-  let search = req.query.q ? req.query.q : ""
+exports.getAllComments = async (req, res) => {
+
+  const token = req.headers['access-token'] || req.headers['authorization'];
+  const userDetail = await userHelper.detail(token);
+
+  const language = req.headers['language'] || req.query.language || "en";
+
+
+  const userId = userDetail?.data?.user_id;
+  const userProfile = userId ? await User.findOne({ _id: userId, isDeleted: false }, "first_name profile_picture").lean() : null;
+
+
+  let query = { isDeleted: false };
+  const search = (req.query.q || "").trim();
+
   if (search) {
-    query.body = { $regex: search, $options: "$i" }
+    query.body = { $regex: search, $options: "i" };
   }
+
   if (req.query.audio_id) {
-    query.audio = req.query.audio_id
+    query.audio = req.query.audio_id;
   }
+
   if (req.query.comment_id) {
-    query.parent_id = req.query.comment_id
+    query.parent_id = req.query.comment_id;
   }
-  let limit = parseInt(req.query.limit ? req.query.limit : config.limit)
-  limit = limit > config.limit ? config.limit : limit
-  let offset = parseInt(req.query.offset ? req.query.offset : config.offset)
-  console.log(query, limit, offset)
-  AudioComment.find(query, {}, { limit: limit, skip: offset, sort: { _id: -1 } })
+
+  let limit = parseInt(req.query.limit || config.limit);
+  limit = limit > config.limit ? config.limit : limit;
+  let offset = parseInt(req.query.offset || config.offset);
+
+  AudioComment.find(query, {}, { limit, skip: offset, sort: { _id: -1 } })
     .populate("audio", "title")
     .populate("created_by", "first_name last_name profile_picture")
     .lean()
     .then((data) => {
-      data.forEach((d) => {
-        let audio = d.audio !== undefined && d.audio ? d.audio : {}
-        delete d.audio
-        d.audio = audio._id || ""
-        d.title = audio.title || ""
-        let profile_picture = d.created_by.profile_picture || ""
-        profile_picture = (profile_picture ? profile_picture : config.defaultImageUrl)
-        profile_picture = profile_picture ? (profile_picture.startsWith("http") === false ? config.audioImageUrl + profile_picture : profile_picture) : ""
-        if (d.created_by._id) {
-          d.created_by.profile_picture = profile_picture
-        }
-      })
+      const formattedData = data.map((d) => {
+        const audio = d.audio || {};
+        const audioTitle = typeof audio.title === "object" ? (audio.title[language] || "") : audio.title;
+
+        const commentBody = typeof d.body === "object" ? (d.body[language] || "") : d.body;
+
+        let profile_picture = d.created_by?.profile_picture || "";
+        profile_picture = `${process.env.IMAGE_BASE_URL}/${profile_picture}`;
+        return {
+          ...d,
+          audio: audio._id || "",
+          createdAt: formatDateToDDMMYYYY(d.createdAt),
+          title: audioTitle,
+          body: commentBody,
+          created_by: {
+            ...d.created_by,
+            profile_picture,
+          }
+        };
+      });
+
       return res.send({
         status: true,
         message: messages.read.success,
-        data: data
-      })
+        data: formattedData,
+        userProfile: userProfile,
+      });
     })
     .catch((err) => {
       return res.status(500).send({
         message: err.message || messages.read.error
-      })
-    })
-}
+      });
+    });
+};
+
+
 
 exports.deleteComment = (req, res) => {
   AudioComment.findByIdAndUpdate(req.params.commentId, { isDeleted: true }, { new: true })
@@ -872,10 +910,10 @@ exports.listOfTopAudioCastOrVideoCast = async (req, res) => {
         : null
     }));
 
-    return res.status(200).json({  status: true,  code: 200,  message: `List of top ${castType} cast fetched successfully`,  data: finalData});
+    return res.status(200).json({ status: true, code: 200, message: `List of top ${castType} cast fetched successfully`, data: finalData });
 
   } catch (err) {
-    return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error"});
+    return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error" });
   }
 };
 
@@ -1038,7 +1076,7 @@ exports.detailsOfAudioCast = async (req, res) => {
 
 
 
-//List of all top video or audio cast
+//List of all top video or audio cast filter category or contact level peding
 exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
@@ -1046,107 +1084,296 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
     const categoryNameFilter = (req.query.categoryName || "").trim();
     const contactLevelFilter = (req.query.contact_level || "").trim();
 
-    const type = req.query.type;
+    if (req.query.doctorId === "") {
+      const type = req.query.type;
 
-    let filter = { isDeleted: false };
-    let model;
-    let castType;
+      let filter = { isDeleted: false };
+      let model;
+      let castType;
 
-    if (type === '1') {
-      model = Audio;
-      castType = "audio";
-    } else if (type === '2') {
-      model = Video;
-      castType = "video";
-    } else {
-      return res.status(400).json({  status: false,  code: 400,  message: "Invalid type provided. Use 1 for Audio and 2 for Video."  });
-    }
-
-    const pipeline = [
-      { $match: filter },
-      { $sort: { _id: -1 } },
-      {
-        $lookup: {
-          from: "categories",
-          localField: "category",
-          foreignField: "_id",
-          as: "categoryResult"
-        }
-      },
-      {
-        $unwind: {
-          path: "$categoryResult",
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $addFields: {
-          title: { $ifNull: [`$title.${language}`, ""] },
-          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
-          duration: { $ifNull: [`$duration.${language}`, ""] },
-          featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
-        }
+      if (type === '1') {
+        model = Audio;
+        castType = "audio";
+      } else if (type === '2') {
+        model = Video;
+        castType = "video";
+      } else {
+        return res.status(400).json({ status: false, code: 400, message: "Invalid type provided. Use 1 for Audio and 2 for Video." });
       }
-    ];
 
-    // 🔍 Build dynamic filters
-    const matchConditions = [];
-
-    if (searchData) {
-      matchConditions.push({ title: { $regex: searchData, $options: "i" } });
-    }
-
-    if (categoryNameFilter) {
-      matchConditions.push({ categoryName: { $regex: categoryNameFilter, $options: "i" } });
-    }
-
-    if (contactLevelFilter) {
-      matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
-    }
-
-    if (matchConditions.length > 0) {
-      pipeline.push({ $match: { $and: matchConditions } });
-    }
-
-    // Final projection
-    pipeline.push({
-      $project: {
-        _id: 1,
-        title: 1,
-        duration: 1,
-        createdAt: {
-          $dateToString: {
-            format: "%d-%m-%Y",
-            date: "$createdAt",
-            timezone: "Asia/Kolkata"
+      const pipeline = [
+        { $match: filter },
+        { $sort: { _id: -1 } },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "categoryResult"
           }
         },
-        categoryName: 1,
-        contact_level: 1,
-        featured_image: 1
+        {
+          $unwind: {
+            path: "$categoryResult",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $addFields: {
+            title: { $ifNull: [`$title.${language}`, ""] },
+            categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+            duration: { $ifNull: [`$duration.${language}`, ""] },
+            featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+          }
+        }
+      ];
+
+      // 🔍 Build dynamic filters
+      const matchConditions = [];
+
+      if (searchData) {
+        matchConditions.push({ title: { $regex: searchData, $options: "i" } });
       }
-    });
 
-    const result = await model.aggregate(pipeline);
+      if (categoryNameFilter) {
+        matchConditions.push({ categoryName: { $regex: categoryNameFilter, $options: "i" } });
+      }
 
-    const finalData = result.map(item => ({
-      _id: item._id,
-      title: item.title.trim(),
-      duration: item.duration,
-      createdAt: item.createdAt,
-      categoryName: item.categoryName.trim(),
-      contact_level: item.contact_level,
-      featured_image: item.featured_image
-        ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}`
-        : null
-    }));
+      if (contactLevelFilter) {
+        matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
+      }
 
-    return res.status(200).json({
-      status: true,
-      code: 200,
-      message: `List of top ${castType} cast fetched successfully`,
-      data: finalData
-    });
+      if (matchConditions.length > 0) {
+        pipeline.push({ $match: { $and: matchConditions } });
+      }
+
+      // Final projection
+      pipeline.push({
+        $project: {
+          _id: 1,
+          title: 1,
+          duration: 1,
+          createdAt: {
+            $dateToString: {
+              format: "%d-%m-%Y",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          categoryName: 1,
+          contact_level: 1,
+          featured_image: 1
+        }
+      });
+
+      const result = await model.aggregate(pipeline);
+
+      const finalData = result.map(item => ({
+        _id: item._id,
+        title: item.title.trim(),
+        duration: item.duration,
+        createdAt: item.createdAt,
+        categoryName: item.categoryName.trim(),
+        contact_level: item.contact_level,
+        featured_image: item.featured_image
+          ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}`
+          : null
+      }));
+
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: `List of top ${castType} cast fetched successfully`,
+        data: finalData
+      });
+    } else {
+      // const searchData = (req.query.searchData || "").trim();
+      const doctorId = new mongoose.Types.ObjectId(req.query.doctorId);
+      const typeQuery = req.query.type;
+
+      // Step 1: Find doctor
+      const doctorData = await Doctor.findOne({ _id: doctorId, isDeleted: false });
+      // Step 2: Check if doctor has type 'article'
+      if (!doctorData || !doctorData.type.includes("audiocast")) {
+        return res.status(200).json({
+          status: true,
+          code: 200,
+          message: "No audiocast found for this doctor",
+          topAudiosCast: []
+        });
+      }
+
+      if (!doctorData || !doctorData.type.includes("videocast")) {
+        return res.status(200).json({
+          status: true,
+          code: 200,
+          message: "No videocast found for this doctor",
+          topVideoCast: []
+        });
+      }
+
+      //Audio Cast
+      if (typeQuery === '1') {
+        const filter = {
+          isDeleted: false,
+          doctorId: doctorId,
+        };
+
+        const pipeline = [
+          { $match: filter },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryResult"
+            }
+          },
+          {
+            $unwind: {
+              path: "$categoryResult",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $addFields: {
+              localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+              localizedDuration: { $ifNull: [`$duration.${language}`, ""] },
+              localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
+              localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+              localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          }
+        ];
+
+        // Apply search filter
+        if (searchData) {
+          pipeline.push({
+            $match: {
+              localizedTitle: { $regex: searchData, $options: "i" }
+            }
+          });
+        }
+
+        pipeline.push({
+          $project: {
+            _id: 1,
+            title: "$localizedTitle",
+            description: "$localizedDescription",
+            featured_image: "$localizedfeatured_image",
+            duration: "$localizedDuration",
+            createdAt: {
+              $dateToString: {
+                format: "%d-%m-%Y",
+                date: "$createdAt",
+                timezone: "Asia/Kolkata"
+              }
+            },
+            categoryName: "$localizedCategoryName"
+          }
+        });
+
+        const audios = await Audio.aggregate(pipeline);
+
+        const finalData = audios.map(item => ({
+          _id: item._id,
+          title: item.title.trim(),
+          description: item.description.trim(),
+          createdAt: item.createdAt,
+          duration: item.duration,
+          categoryName: item.categoryName.trim(),
+          image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : ""
+        }));
+
+        return res.status(200).json({
+          status: true,
+          code: 200,
+          message: "List of top audio fetched successfully",
+          data: finalData
+        });
+
+      }
+      //Video Cast
+      if (typeQuery === '2') {
+        const filter = {
+          isDeleted: false,
+          doctorId: doctorId,
+        };
+
+        const pipeline = [
+          { $match: filter },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryResult"
+            }
+          },
+          {
+            $unwind: {
+              path: "$categoryResult",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $addFields: {
+              localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+              localizedDuration: { $ifNull: [`$duration.${language}`, ""] },
+              localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
+              localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+              localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          }
+        ];
+
+        // Apply search filter
+        if (searchData) {
+          pipeline.push({
+            $match: {
+              localizedTitle: { $regex: searchData, $options: "i" }
+            }
+          });
+        }
+
+        pipeline.push({
+          $project: {
+            _id: 1,
+            title: "$localizedTitle",
+            duration: "$localizedDuration",
+            description: "$localizedDescription",
+            featured_image: "$localizedfeatured_image",
+            createdAt: {
+              $dateToString: {
+                format: "%d-%m-%Y",
+                date: "$createdAt",
+                timezone: "Asia/Kolkata"
+              }
+            },
+            categoryName: "$localizedCategoryName"
+          }
+        });
+
+        const videos = await Video.aggregate(pipeline);
+
+        const finalData = videos.map(item => ({
+          _id: item._id,
+          title: item.title.trim(),
+          description: item.description.trim(),
+          createdAt: item.createdAt,
+          duration: item.duration,
+          categoryName: item.categoryName.trim(),
+          image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : ""
+        }));
+
+        return res.status(200).json({
+          status: true,
+          code: 200,
+          message: "List of top video fetched successfully",
+          data: finalData
+        });
+      }
+    }
 
   } catch (err) {
     return res.status(500).json({
@@ -1156,5 +1383,198 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
     });
   }
 };
+
+//List of top doctor video or audio cast not used
+exports.listOfTopDoctAudioOrVideo = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers['language'] || 'en';
+    const searchData = (req.query.searchData || "").trim();
+    const doctorId = new mongoose.Types.ObjectId(req.query.doctorId);
+    const typeQuery = req.query.type;
+
+    // Step 1: Find doctor
+    const doctorData = await Doctor.findOne({ _id: doctorId, isDeleted: false });
+    // Step 2: Check if doctor has type 'article'
+    if (!doctorData || !doctorData.type.includes("audiocast")) {
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: "No audiocast found for this doctor",
+        topAudiosCast: []
+      });
+    }
+
+    if (!doctorData || !doctorData.type.includes("videocast")) {
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: "No videocast found for this doctor",
+        topVideoCast: []
+      });
+    }
+
+    //Audio Cast
+    if (typeQuery === '1') {
+      const filter = {
+        isDeleted: false,
+        doctorId: doctorId,
+      };
+
+      const pipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "categoryResult"
+          }
+        },
+        {
+          $unwind: {
+            path: "$categoryResult",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $addFields: {
+            localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+            localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
+            localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+            localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+          }
+        }
+      ];
+
+      // Apply search filter
+      if (searchData) {
+        pipeline.push({
+          $match: {
+            localizedTitle: { $regex: searchData, $options: "i" }
+          }
+        });
+      }
+
+      pipeline.push({
+        $project: {
+          _id: 1,
+          title: "$localizedTitle",
+          description: "$localizedDescription",
+          featured_image: "$localizedfeatured_image",
+
+          createdAt: {
+            $dateToString: {
+              format: "%d-%m-%Y",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          categoryName: "$localizedCategoryName"
+        }
+      });
+
+      const audios = await Audio.aggregate(pipeline);
+
+      const finalData = audios.map(item => ({
+        _id: item._id,
+        title: item.title.trim(),
+        description: item.description.trim(),
+        createdAt: item.createdAt,
+        categoryName: item.categoryName.trim(),
+        image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : ""
+      }));
+
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: "List of top audio fetched successfully",
+        topArticles: finalData
+      });
+
+    }
+    //Video Cast
+    if (typeQuery === '2') {
+      const filter = {
+        isDeleted: false,
+        doctorId: doctorId,
+      };
+
+      const pipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: "categories",
+            localField: "category",
+            foreignField: "_id",
+            as: "categoryResult"
+          }
+        },
+        {
+          $unwind: {
+            path: "$categoryResult",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $addFields: {
+            localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+            localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
+            localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+            localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+          }
+        }
+      ];
+
+      // Apply search filter
+      if (searchData) {
+        pipeline.push({
+          $match: {
+            localizedTitle: { $regex: searchData, $options: "i" }
+          }
+        });
+      }
+
+      pipeline.push({
+        $project: {
+          _id: 1,
+          title: "$localizedTitle",
+          description: "$localizedDescription",
+          featured_image: "$localizedfeatured_image",
+          createdAt: {
+            $dateToString: {
+              format: "%d-%m-%Y",
+              date: "$createdAt",
+              timezone: "Asia/Kolkata"
+            }
+          },
+          categoryName: "$localizedCategoryName"
+        }
+      });
+
+      const videos = await Video.aggregate(pipeline);
+
+      const finalData = videos.map(item => ({
+        _id: item._id,
+        title: item.title.trim(),
+        description: item.description.trim(),
+        createdAt: item.createdAt,
+        categoryName: item.categoryName.trim(),
+        image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : ""
+      }));
+
+      return res.status(200).json({
+        status: true,
+        code: 200,
+        message: "List of top video fetched successfully",
+        data: finalData
+      });
+    }
+
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
+
+
 
 

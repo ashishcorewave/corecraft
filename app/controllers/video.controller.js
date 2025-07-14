@@ -1,6 +1,7 @@
 const Video = require("../models/video.model.js")
 const VideoComment = require("../models/video.comment.model.js")
-const VideoLike = require("../models/video.like.model.js")
+const VideoLike = require("../models/video.like.model.js");
+const User = require('../models/user.model.js');
 const messages = require("../utility/messages")
 const upload = require("../utility/fileUpload")
 const config = require("config")
@@ -84,7 +85,7 @@ exports.getAll = async (req, res) => {
         video_link: item.video_link?.[language] ? `${process.env.BASE_URL}/${item.video_link[language]}` : null,
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
-        isTopVideoCast:item.isTopVideoCast,
+        isTopVideoCast: item.isTopVideoCast,
         createdAt: item.createdAt
       }));
     return res.status(200).json({ status: true, code: "200", message: "Video filtered by language successfully", data, count: count });
@@ -386,7 +387,7 @@ exports.isLiked = async (userDetail, postId) => {
 }
 
 exports.createComment = async (req, res) => {
-  let userDetail = await userHelper.detail(req.headers["access-token"])
+  let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"]);
   if (userDetail.status === 0) {
     return res.send(userDetail)
   }
@@ -425,50 +426,86 @@ exports.createComment = async (req, res) => {
   }
 }
 
-exports.getAllComments = (req, res) => {
-  let query = { isDeleted: false }
-  let search = req.query.q ? req.query.q : ""
-  if (search) {
-    query.body = { $regex: search, $options: "$i" }
-  }
-  if (req.query.video_id) {
-    query.video = req.query.video_id
-  }
-  if (req.query.comment_id) {
-    query.parent_id = req.query.comment_id
-  }
-  let limit = parseInt(req.query.limit ? req.query.limit : config.limit)
-  limit = limit > config.limit ? config.limit : limit
-  let offset = parseInt(req.query.offset ? req.query.offset : config.offset)
-  VideoComment.find(query, {}, { limit: limit, skip: offset, sort: { _id: -1 } })
-    .populate("video", "title")
-    .populate("created_by", "first_name last_name profile_picture")
-    .lean()
-    .then((data) => {
-      data.forEach((d) => {
-        let video = d.video !== undefined && d.video ? d.video : {}
-        delete d.video
-        d.video = video._id || ""
-        d.title = video.title || ""
-        let profile_picture = d.created_by.profile_picture || ""
-        profile_picture = (profile_picture ? profile_picture : config.defaultImageUrl)
-        profile_picture = profile_picture ? (profile_picture.startsWith("http") === false ? config.videoImageUrl + profile_picture : profile_picture) : ""
-        if (d.created_by._id) {
-          d.created_by.profile_picture = profile_picture
+
+const formatDateToDDMMYYYY = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+};
+
+exports.getAllComments = async (req, res) => {
+  try {
+    const token = req.headers['access-token'] || req.headers['authorization'];
+    const userDetail = await userHelper.detail(token);
+
+    const language = req.headers['language'] || req.query.language || "en";
+    const userId = userDetail?.data?.user_id;
+
+    const userProfile = userId? await User.findOne({ _id: userId, isDeleted: false }, "first_name profile_picture").lean(): null;
+
+    let query = { isDeleted: false };
+    const search = (req.query.q || "").trim();
+
+    if (search) {
+      query.body = { $regex: search, $options: "i" };
+    }
+
+    if (req.query.video_id) {
+      query.video = req.query.video_id;
+    }
+
+    if (req.query.comment_id) {
+      query.parent_id = req.query.comment_id;
+    }
+
+    let limit = parseInt(req.query.limit || config.limit);
+    limit = limit > config.limit ? config.limit : limit;
+    let offset = parseInt(req.query.offset || config.offset);
+
+    const data = await VideoComment.find(query, {}, { limit, skip: offset, sort: { _id: -1 } })
+      .populate("video", "title")
+      .populate("created_by", "first_name last_name profile_picture")
+      .lean();
+
+    const formattedData = data.map((d) => {
+      const video = d.video || {};
+      const videoTitle = typeof video.title === "object" ? (video.title[language]  || "") : video.title;
+
+      const commentBody = typeof d.body === "object" ? (d.body[language]  || "") : d.body;
+
+      let profile_picture = d.created_by?.profile_picture || "";
+      profile_picture =  `${process.env.IMAGE_BASE_URL}/${profile_picture}`;
+
+      return {
+        ...d,
+        createdAt:formatDateToDDMMYYYY(d.createdAt),
+        video: video._id || "",
+        title: videoTitle,
+        body: commentBody,
+        created_by: {
+          ...d.created_by,
+          profile_picture,
         }
-      })
-      return res.send({
-        status: true,
-        message: messages.read.success,
-        data: data
-      })
-    })
-    .catch((err) => {
-      return res.status(500).send({
-        message: err.message || messages.read.error
-      })
-    })
-}
+      };
+    });
+
+    return res.send({
+      status: true,
+      message: messages.read.success,
+      data: formattedData,
+      userProfile: userProfile,
+    });
+
+  } catch (err) {
+    return res.status(500).send({
+      message: err.message || messages.read.error
+    });
+  }
+};
 
 exports.deleteComment = (req, res) => {
   VideoComment.findByIdAndUpdate(req.params.commentId, { isDeleted: true }, { new: true })
@@ -698,9 +735,24 @@ exports.videoCastDetails = async (req, res) => {
         }
       },
       {
+        $lookup:{
+          from:"videolikes",
+          localField:"_id",
+          foreignField:"video_id",
+          as:"likeVideo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$likeVideo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
         $addFields: {
           title: { $ifNull: [`$title.${language}`, ""] },
           categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          isLiked: 1,
           duration: { $ifNull: [`$duration.${language}`, ""] },
           featured_image: { $ifNull: [`$featured_image.${language}`, ""] },
           description: { $ifNull: [`$description.${language}`, ""] },
@@ -726,6 +778,7 @@ exports.videoCastDetails = async (req, res) => {
           commentCount: 1,
           featured_image: 1,
           video_link: 1,
+          isLiked:"$likeVideo.isLiked"
         }
       }
     ];

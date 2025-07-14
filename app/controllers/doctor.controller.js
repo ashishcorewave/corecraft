@@ -12,7 +12,7 @@ exports.createDoctor = async (req, res) => {
         const language = req.headers["language"] || req.body.language;
         const newDoctor = new Doctor({
             doctorName: { [language]: doctorName },
-            type:JSON.parse(req.body.type),
+            type: JSON.parse(req.body.type),
             category: JSON.parse(category),
             experience,
             created_by: userDetail.data.user_id,
@@ -63,7 +63,7 @@ exports.getAllDoctors = async (req, res) => {
             doctorName: item.doctorName[language],
             experience: item.experience,
             isTopDoctor: item.isTopDoctor,
-            type:item.type,
+            type: item.type,
             addedDate: item.addedDate,
             shortCode: language,
             doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
@@ -165,8 +165,27 @@ exports.listOfTopDoctors = async (req, res) => {
     try {
         const searchData = (req.query.searchData || "").trim();
         const language = req.query.language || req.headers["language"] || "en";
+        const type = req.query.type; // '0' for article, '1' for videocast, '2' for audiocast
 
-        const filter = { isTopDoctor: true, isDeleted: false };
+        const typeMap = {
+            '0': 'article',
+            '1': 'audiocast',
+            '2': 'videocast'
+        };
+
+        const selectedType = typeMap[type];
+
+        if (!selectedType) {
+            return res.status(400).json({ status: false, code: 400, message: "Invalid type" });
+        }
+
+        const filter = {
+            isTopDoctor: true,
+            isDeleted: false,
+            type: { $in: [selectedType] }
+        };
+
+        console.log(filter, "Filter");
 
         const pipeline = [
             { $match: filter },
@@ -181,10 +200,10 @@ exports.listOfTopDoctors = async (req, res) => {
             },
             {
                 $lookup: {
-                    from: "articles",
+                    from: selectedType === "article" ? "articles" : selectedType === "audiocast" ? "audiocasts" : "videocasts",
                     localField: "_id",
                     foreignField: "doctorId",
-                    as: "articles"
+                    as: "content"
                 }
             },
             {
@@ -198,7 +217,8 @@ exports.listOfTopDoctors = async (req, res) => {
                     doctorName: "$localizedDoctorName",
                     doctorImage: 1,
                     experience: 1,
-                    articleCount: { $size: "$articles" },
+                    type:type,
+                    contentCount: { $size: "$content" },
                     categoryName: {
                         $map: {
                             input: "$categoryResult",
@@ -210,7 +230,6 @@ exports.listOfTopDoctors = async (req, res) => {
             }
         ];
 
-        // Apply search after projecting localized doctorName
         if (searchData) {
             pipeline.push({
                 $match: {
@@ -220,18 +239,116 @@ exports.listOfTopDoctors = async (req, res) => {
         }
 
         const listOfTopDoctorsQuery = await Doctor.aggregate(pipeline);
+        const count = await Doctor.countDocuments(filter);
+        console.log(count,"Count");
 
         const finalData = listOfTopDoctorsQuery.map(item => ({
             ...item,
             doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null
         }));
 
-        return res.status(200).json({ status: true, code: "200", message: "List of top doctors fetched successfully", topDoctors: finalData });
+        return res.status(200).json({
+            status: true,
+            code: "200",
+            message: "List of top doctors fetched successfully",
+            topDoctors: finalData
+        });
 
     } catch (err) {
-        return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+        return res.status(500).json({
+            status: false,
+            code: "500",
+            message: err.message || 'Internal Server Error'
+        });
     }
 };
+
+
+// exports.listOfTopDoctors = async (req, res) => {
+//     try {
+//         const searchData = (req.query.searchData || "").trim();
+//         const language = req.query.language || req.headers["language"] || "en";
+//         const filter = { isTopDoctor: true, isDeleted: false ,  type : req.query.type};
+
+//         //Articles top doctors
+//         if (type === '0') {
+//             const pipeline = [
+//                 { $match: filter },
+//                 { $sort: { _id: -1 } },
+//                 {
+//                     $lookup: {
+//                         from: "categories",
+//                         localField: "category",
+//                         foreignField: "_id",
+//                         as: "categoryResult"
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "articles",
+//                         localField: "_id",
+//                         foreignField: "doctorId",
+//                         as: "articles"
+//                     }
+//                 },
+//                 {
+//                     $addFields: {
+//                         localizedDoctorName: { $ifNull: [`$doctorName.${language}`, ""] }
+//                     }
+//                 },
+//                 {
+//                     $project: {
+//                         _id: 1,
+//                         doctorName: "$localizedDoctorName",
+//                         doctorImage: 1,
+//                         experience: 1,
+//                         articleCount: { $size: "$articles" },
+//                         categoryName: {
+//                             $map: {
+//                                 input: "$categoryResult",
+//                                 as: "cat",
+//                                 in: { $ifNull: [`$$cat.name.${language}`, ""] }
+//                             }
+//                         }
+//                     }
+//                 }
+//             ];
+//             if (searchData) {
+//                 pipeline.push({
+//                     $match: {
+//                         doctorName: { $regex: searchData, $options: "i" }
+//                     }
+//                 });
+//             }
+
+//             const listOfTopDoctorsQuery = await Doctor.aggregate(pipeline);
+
+//             const finalData = listOfTopDoctorsQuery.map(item => ({
+//                 ...item,
+//                 doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null
+//             }));
+
+//             return res.status(200).json({ status: true, code: "200", message: "List of top doctors fetched successfully", topDoctors: finalData });
+//         }
+//         //Audio cast top doctors
+//         if (type === '1') {
+
+//         }
+
+
+//         //video cast top doctors
+//         if (type === '2') {
+
+//         }
+
+
+
+
+
+//     } catch (err) {
+//         return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+//     }
+// };
 
 
 
@@ -404,7 +521,7 @@ exports.listOfAllDoctors = async (req, res) => {
 
 
         // Optional search filter after localization
-        const filteredData = searchData  ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase()))  : finalData;
+        const filteredData = searchData ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase())) : finalData;
 
         return res.status(200).json({
             status: true,

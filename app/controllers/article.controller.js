@@ -426,50 +426,83 @@ exports.createComment = async (req, res) => {
   }
 }
 
-exports.getAllComments = (req, res) => {
-  let query = { isDeleted: false }
-  let search = req.query.q ? req.query.q : ""
-  if (search) {
-    query.body = { $regex: search, $options: "$i" }
+
+const  formatDateToDDMMYYYY = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+};
+
+exports.getAllComments = async (req, res) => {
+  try {
+    const token = req.headers['access-token'] || req.headers['authorization'];
+    const userDetail = await userHelper.detail(token);
+   
+    const language = req.headers["language"] || req.query.language || "en";
+
+    // Fetch full user profile using user_id
+    const userId = userDetail?.data?.user_id;
+    const userProfile = userId ? await User.findOne({ _id: userId, isDeleted: false }, "first_name profile_picture").lean() : null;
+
+    let query = { isDeleted: false };
+    const search = (req.query.q || "").trim();
+
+    if (search) {
+      query.body = { $regex: search, $options: "i" };
+    }
+
+    if (req.query.article_id) {
+      query.article = new mongoose.Types.ObjectId(req.query.article_id);
+    }
+
+    if (req.query.comment_id) {
+      query.parent_id = new mongoose.Types.ObjectId(req.query.comment_id);
+    }
+
+    let limit = parseInt(req.query.limit || config.limit);
+    limit = limit > config.limit ? config.limit : limit;
+    const offset = parseInt(req.query.offset || config.offset);
+
+    const data = await ArticleComment.find(query, {}, { limit, skip: offset, sort: { _id: -1 } })
+      .populate("article", "title")
+      .populate("created_by", "first_name last_name profile_picture")
+      .lean();
+
+    const formattedData = data.map((d) => {
+      const article = d.article || {};
+      const articleTitle = typeof article.title === "object" ? (article.title[language] || "") : article.title;
+
+      const profile_picture = d.created_by?.profile_picture || "";
+      const resolvedProfilePic = `${process.env.IMAGE_BASE_URL}/${profile_picture}`;
+
+      return {
+        ...d,
+        createdAt:formatDateToDDMMYYYY(d.createdAt),
+        article: article._id || "",
+        title: articleTitle,
+        body: typeof d.body === "object" ? (d.body[language] || "") : d.body,
+        created_by: {
+          ...d.created_by,
+          profile_picture: resolvedProfilePic,
+        },
+      };
+    });
+
+    return res.send({
+      status: true,
+      message: messages.read.success,
+      userProfile: userProfile || {},
+      data: formattedData,
+    });
+  } catch (err) {
+    return res.status(500).send({ message: err.message || messages.read.error });
   }
-  if (req.query.article_id) {
-    query.article = req.query.article_id
-  }
-  if (req.query.comment_id) {
-    query.parent_id = req.query.comment_id
-  }
-  let limit = parseInt(req.query.limit ? req.query.limit : config.limit)
-  limit = limit > config.limit ? config.limit : limit
-  let offset = parseInt(req.query.offset ? req.query.offset : config.offset)
-  ArticleComment.find(query, {}, { limit: limit, skip: offset, sort: { _id: -1 } })
-    .populate("article", "title")
-    .populate("created_by", "first_name last_name profile_picture")
-    .lean()
-    .then((data) => {
-      data.forEach((d) => {
-        let article = d.article !== undefined && d.article ? d.article : {}
-        delete d.article
-        d.article = article._id || ""
-        d.title = article.title || ""
-        let profile_picture = d.created_by.profile_picture || ""
-        profile_picture = (profile_picture ? profile_picture : config.defaultImageUrl)
-        profile_picture = profile_picture ? (profile_picture.startsWith("http") === false ? config.imageUrl + profile_picture : profile_picture) : ""
-        if (d.created_by._id) {
-          d.created_by.profile_picture = profile_picture
-        }
-      })
-      return res.send({
-        status: true,
-        message: messages.read.success,
-        data: data
-      })
-    })
-    .catch((err) => {
-      return res.status(500).send({
-        message: err.message || messages.read.error
-      })
-    })
-}
+};
+
 
 exports.deleteComment = (req, res) => {
   ArticleComment.findByIdAndUpdate(req.params.commentId, { isDeleted: true }, { new: true })
