@@ -643,13 +643,110 @@ exports.isTopArticlesMarks = async (req, res) => {
 
 //List of top Doctor artilcle
 
+// exports.listOfTopDoctorArticles = async (req, res) => {
+//   try {
+//     const language = req.query.language || req.headers['language'] || 'en';
+//     const searchData = (req.query.searchData || "").trim();
+//     const filter = {
+//       isDeleted: false,
+//       doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
+//     };
+
+//     const doctorData = await Doctor.findOne({_id:req.query.doctorId});
+//     console.log(doctorData,"DoctorData");
+
+//     const pipeline = [
+//       { $match: filter },
+//       {
+//         $lookup: {
+//           from: "categories",
+//           localField: "category",
+//           foreignField: "_id",
+//           as: "categoryResult"
+//         }
+//       },
+//       {
+//         $unwind: {
+//           path: "$categoryResult",
+//           preserveNullAndEmptyArrays: true
+//         }
+//       },
+//       {
+//         $addFields: {
+//           localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+//           localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+//           localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+//         }
+//       }
+//     ];
+
+//     // Apply search if searchData exists
+//     if (searchData) {
+//       pipeline.push({
+//         $match: {
+//           localizedTitle: { $regex: searchData, $options: "i" }
+//         }
+//       });
+//     }
+
+//     pipeline.push({
+//       $project: {
+//         _id: 1,
+//         title: "$localizedTitle",
+//         description: "$localizedDescription",
+//         image: "$Img",
+//         createdAt: {
+//           $dateToString: {
+//             format: "%d-%m-%Y",
+//             date: "$createdAt",
+//             timezone: "Asia/Kolkata"
+//           }
+//         },
+//         categoryName: "$localizedCategoryName"
+//       }
+//     });
+
+//     const articles = await Article.aggregate(pipeline);
+//     console.log(articles,"articles");
+
+//     const finalData = articles.map(item => ({
+//       _id: item._id,
+//       title: item.title.trim(),
+//       description: item.description.trim(),
+//       createdAt: item.createdAt,
+//       categoryName: item.categoryName.trim(),
+//       image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
+//     }));
+//     return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
+//   } catch (err) {
+//     return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+//   }
+// };
+
+
+
 exports.listOfTopDoctorArticles = async (req, res) => {
   try {
     const language = req.query.language || req.headers['language'] || 'en';
     const searchData = (req.query.searchData || "").trim();
+    const doctorId = new mongoose.Types.ObjectId(req.query.doctorId);
+
+    // Step 1: Find doctor
+    const doctorData = await Doctor.findOne({ _id: doctorId, isDeleted: false });
+    // Step 2: Check if doctor has type 'article'
+    if (!doctorData || !doctorData.type.includes("article")) {
+      return res.status(200).json({
+        status: true,
+        code: "200",
+        message: "No articles found for this doctor",
+        topArticles: []
+      });
+    }
+
+    // Step 3: Continue with article aggregation
     const filter = {
       isDeleted: false,
-      doctorId: new mongoose.Types.ObjectId(req.query.doctorId)
+      doctorId: doctorId,
     };
 
     const pipeline = [
@@ -677,7 +774,7 @@ exports.listOfTopDoctorArticles = async (req, res) => {
       }
     ];
 
-    // Apply search if searchData exists
+    // Apply search filter
     if (searchData) {
       pipeline.push({
         $match: {
@@ -713,11 +810,23 @@ exports.listOfTopDoctorArticles = async (req, res) => {
       categoryName: item.categoryName.trim(),
       image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
     }));
-    return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
+
+    return res.status(200).json({
+      status: true,
+      code: "200",
+      message: "List of top articles fetched successfully",
+      topArticles: finalData
+    });
+
   } catch (err) {
-    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+    return res.status(500).json({
+      status: false,
+      code: "500",
+      message: err.message || 'Internal Server Error'
+    });
   }
 };
+
 
 
 

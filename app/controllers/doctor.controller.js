@@ -12,7 +12,7 @@ exports.createDoctor = async (req, res) => {
         const language = req.headers["language"] || req.body.language;
         const newDoctor = new Doctor({
             doctorName: { [language]: doctorName },
-            type:req.body.type,
+            type:JSON.parse(req.body.type),
             category: JSON.parse(category),
             experience,
             created_by: userDetail.data.user_id,
@@ -47,7 +47,7 @@ exports.getAllDoctors = async (req, res) => {
         const language = req.query.language || req.headers["language"] || "en";
         let count = await Doctor.countDocuments(filter)
         // Fetch filtered doctors
-        const doctors = await Doctor.find(filter).populate({ path: "category", select: `name.${language}` }).sort({ _id: -1 }).select('_id doctorName experience addedDate isTopDoctor doctorImage').lean();
+        const doctors = await Doctor.find(filter).populate({ path: "category", select: `name.${language}` }).sort({ _id: -1 }).select('_id doctorName experience addedDate isTopDoctor doctorImage type').lean();
         // Filter by selected language and optional search string
         const filteredDoctors = doctors.filter((item) => {
             const doctorNameInLang = item.doctorName && item.doctorName[language];
@@ -63,6 +63,7 @@ exports.getAllDoctors = async (req, res) => {
             doctorName: item.doctorName[language],
             experience: item.experience,
             isTopDoctor: item.isTopDoctor,
+            type:item.type,
             addedDate: item.addedDate,
             shortCode: language,
             doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,

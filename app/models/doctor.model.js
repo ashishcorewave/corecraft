@@ -10,7 +10,7 @@ const doctorSchema = new mongoose.Schema({
     },
     type: {
       type: [String],
-      enum: ["article", "podcast", "audiocast"],
+      enum: ["article", "videocast", "audiocast"],
       required: true,
     },
     category: {

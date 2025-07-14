@@ -34,7 +34,7 @@ router.post('/audio-insert', audios.createAudio);
 router.put('/update-audio/:audioId', audios.updateAudioWithTranslation);
 
 
-router.post('/mark-top-audio-cast', audios.isTopAudioCastMark);//Not Use
+router.post('/mark-top-audio-cast', audios.isTopAudioCastMark);
 router.get('/top-audio-video-cast', audios.listOfTopAudioCastOrVideoCast);
 router.get('/list-top-audio-video-cast', audios.listOfAllTopAudioCastOrVideoCast);
 router.get('/audio-cast-by-category', audios.audioCastByCategoryId);
