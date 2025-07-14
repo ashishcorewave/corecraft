@@ -8,6 +8,11 @@ const doctorSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    type: {
+      type: [String],
+      enum: ["article", "podcast", "audiocast"],
+      required: true,
+    },
     category: {
         type: [mongoose.Types.ObjectId],
         ref: 'Category',

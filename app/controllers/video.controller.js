@@ -63,7 +63,7 @@ exports.getAll = async (req, res) => {
     let count = await Video.countDocuments(filter)
     const q = req.query.q || "";
 
-    const video = await Video.find().sort({ _id: -1 }).select("_id title video_link isDeleted description availableIn createdAt").lean();
+    const video = await Video.find().sort({ _id: -1 }).select("_id title video_link isDeleted description availableIn createdAt isTopVideoCast").lean();
 
     const filteredVideo = video.filter((item) => {
       const videoInLang = item.title && item.title[language];
@@ -84,6 +84,7 @@ exports.getAll = async (req, res) => {
         video_link: item.video_link?.[language] ? `${process.env.BASE_URL}/${item.video_link[language]}` : null,
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
+        isTopVideoCast:item.isTopVideoCast,
         createdAt: item.createdAt
       }));
     return res.status(200).json({ status: true, code: "200", message: "Video filtered by language successfully", data, count: count });

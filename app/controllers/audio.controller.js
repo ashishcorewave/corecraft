@@ -138,7 +138,7 @@ exports.getAll = async (req, res) => {
     let count = await Audio.countDocuments(filter)
     const q = req.query.q || "";
 
-    const audio = await Audio.find().sort({ _id: -1 }).select("_id title description audio_link  availableIn isDeleted createdAt").lean();
+    const audio = await Audio.find().sort({ _id: -1 }).select("_id title description audio_link  availableIn isDeleted createdAt isTopAudioCast").lean();
 
     const filteredAudio = audio.filter((item) => {
       const audioInLang = item.title && item.title[language];
@@ -159,6 +159,7 @@ exports.getAll = async (req, res) => {
         description: item.description?.[language] || null,
         availableIn: item.availableIn,
         createdAt: item.createdAt,
+        isTopAudioCast:item.isTopAudioCast,
         shortCode: language,
       }));
 

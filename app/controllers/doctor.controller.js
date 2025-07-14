@@ -12,6 +12,7 @@ exports.createDoctor = async (req, res) => {
         const language = req.headers["language"] || req.body.language;
         const newDoctor = new Doctor({
             doctorName: { [language]: doctorName },
+            type:req.body.type,
             category: JSON.parse(category),
             experience,
             created_by: userDetail.data.user_id,
