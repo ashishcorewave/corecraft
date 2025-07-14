@@ -51,14 +51,14 @@ exports.getAll = async (req, res) => {
     const language = req.query.language || req.headers["language"] || "en";
     const category = await Category.find(filter).sort({ _id: -1 }).select("_id name icon isTopCategory addedDate").lean();
 
-     const filteredCategory = category.filter((item) => {
-            const categoryInLang = item.name && item.name[language];
-            if (!categoryInLang) return false;
-            if (q) {
-                return categoryInLang.toLowerCase().includes(q.toLowerCase());
-            }
-            return true;
-        });
+    const filteredCategory = category.filter((item) => {
+      const categoryInLang = item.name && item.name[language];
+      if (!categoryInLang) return false;
+      if (q) {
+        return categoryInLang.toLowerCase().includes(q.toLowerCase());
+      }
+      return true;
+    });
 
     const data = filteredCategory
       .filter(item => item.name && item.name[language]).slice(offset, offset + perPage)
@@ -87,7 +87,7 @@ exports.getById = (req, res) => {
       if (data) {
         data.name = data.name[language] ? data.name[language] : ""
         // data.icon = data.icon ? config.categoryImageUrl + data.icon : config.defaultImageUrl
-         data.icon = data.icon ? `${process.env.BASE_URL}/uploads/${data.icon}` : null;
+        data.icon = data.icon ? `${process.env.BASE_URL}/uploads/${data.icon}` : null;
         return res.send({
           status: true,
           message: messages.read.success,
@@ -164,6 +164,7 @@ exports.delete = (req, res) => {
     })
 }
 
+
 exports.isTopCategoryMark = async (req, res) => {
   try {
     const filter = { isDeleted: false, _id: req.body.categoryId };
@@ -186,8 +187,10 @@ exports.isTopCategoryMark = async (req, res) => {
 }
 
 
+
 exports.listOfTopCategory = async (req, res) => {
   try {
+    const searchData = (req.query.searchData || "").trim();
     const language = req.query.language || req.headers['language'] || 'en';
 
     const filter = {
@@ -195,20 +198,39 @@ exports.listOfTopCategory = async (req, res) => {
     };
 
     const pipeline = [
+      { $match: filter },
       {
-        $match: filter
-      },
-      {
-        $project: {
-          icon: 1,
-          name: 1
+        $addFields: {
+          localizedName: {
+            $ifNull: [`$name.${language}`, ""]
+          }
         }
       }
     ];
 
+    // Add search condition if searchData is provided
+    if (searchData) {
+      pipeline.push({
+        $match: {
+          localizedName: {
+            $regex: searchData,
+            $options: "i"
+          }
+        }
+      });
+    }
+
+    pipeline.push({
+      $project: {
+        icon: 1,
+        name: 1,
+        localizedName: 1
+      }
+    });
+
     const listOfTopCategoryQuery = await Category.aggregate(pipeline);
 
-    // Filter out items where name in selected language is missing or empty
+    // Final formatting
     const finalData = listOfTopCategoryQuery
       .map(item => {
         const name = item.name?.[language] || "";
@@ -218,22 +240,34 @@ exports.listOfTopCategory = async (req, res) => {
           name: name.trim()
         };
       })
-      .filter(item => item.name); // ⛔ remove if name is "" or undefined/null
+      .filter(item => item.name); // Filter out if name is empty
 
-    return res.status(200).json({
-      status: true,
-      code: "200",
-      message: "List of top category fetched successfully",
-      topCategories: finalData
-    });
+    return res.status(200).json({ status: true, code: "200", message: "List of top category fetched successfully", topCategories: finalData });
 
   } catch (err) {
-    return res.status(500).json({
-      status: false,
-      code: "500",
-      message: err.message || 'Internal Server Error'
-    });
+    return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
   }
 };
 
+exports.allCategory = async (req, res) => {
+  try {
+    const filter = {
+      isDeleted: false
+    };
+    const language = req.query.language || req.headers["language"] || "en";
+    const category = await Category.find(filter).sort({ _id: -1 }).select("_id name ").lean();
+    const data = category
+      .filter(item => item.name && item.name[language])
+      .map(item => {
+        return {
+          _id: item._id,
+          name: item.name[language],
+        };
+      });
+    return res.status(200).json({ status: true, code: "200", message: "Category filtered by language successfully", data: data });
+
+  } catch (err) {
+    return res.status({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+}
 

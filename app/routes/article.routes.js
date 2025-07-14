@@ -29,4 +29,5 @@ router.get('/top-article', articles.listOfTopArticles);
 router.get('/top-doctor-article', articles.listOfTopDoctorArticles);
 router.get('/article-detail', articles.detailsOfArticle);
 router.get('/article-by-category', articles.ArticleByCategory);
+router.get('/all-articles', articles.listOfAllArticles);
 module.exports = router;

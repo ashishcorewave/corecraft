@@ -1,4 +1,5 @@
 const Audio = require("../models/audio.model.js")
+const Video = require('../models/video.model.js');
 const AudioComment = require("../models/audio.comment.model.js")
 const AudioLike = require("../models/audio.like.model.js")
 const messages = require("../utility/messages")
@@ -775,17 +776,35 @@ exports.isTopAudioCastMark = async (req, res) => {
 }
 
 
-//Top Doctor Audio Cast
+//Top Doctor Audio Cast or Video Cast
 
-exports.listOfTopAudioCast = async (req, res) => {
+exports.listOfTopAudioCastOrVideoCast = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
     const searchData = (req.query.searchData || "").trim();
+    const type = req.query.type;
 
-    const filter = {
-      doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
-      isDeleted: false
-    };
+    let filter = {};
+    let model;
+    let castType;
+
+    if (type === '1') {
+      // Audio Cast
+      filter = { isTopAudioCast: true, isDeleted: false };
+      model = Audio;
+      castType = "audio";
+    } else if (type === '2') {
+      // Video Cast
+      filter = { isTopVideoCast: true, isDeleted: false };
+      model = Video;
+      castType = "video";
+    } else {
+      return res.status(400).json({
+        status: false,
+        code: 400,
+        message: "Invalid type provided. Use 1 for Audio and 2 for Video."
+      });
+    }
 
     const pipeline = [
       { $match: filter },
@@ -814,7 +833,6 @@ exports.listOfTopAudioCast = async (req, res) => {
       }
     ];
 
-    // Apply search on dynamic language title
     if (searchData) {
       pipeline.push({
         $match: {
@@ -840,18 +858,26 @@ exports.listOfTopAudioCast = async (req, res) => {
       }
     });
 
-    const audioQuery = await Audio.aggregate(pipeline);
+    const result = await model.aggregate(pipeline);
 
-    const finalData = audioQuery.map(item => ({
-      ...item,
-      featured_image: item.featured_image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}` : null
+    const finalData = result.map(item => ({
+      _id: item._id,
+      title: item.title.trim(),
+      duration: item.duration,
+      createdAt: item.createdAt,
+      categoryName: item.categoryName.trim(),
+      featured_image: item.featured_image
+        ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}`
+        : null
     }));
 
-    return res.status(200).json({status: true, code: 200,  message: "List of top audio cast",  data: finalData});
+    return res.status(200).json({  status: true,  code: 200,  message: `List of top ${castType} cast fetched successfully`,  data: finalData});
+
   } catch (err) {
-    return res.status(500).json({ status: false, code: "500", message: err.message || "Internal Server Error"});
+    return res.status(500).json({ status: false, code: 500, message: err.message || "Internal Server Error"});
   }
 };
+
 
 //Audio Cast by Category
 
@@ -1006,6 +1032,127 @@ exports.detailsOfAudioCast = async (req, res) => {
 
   } catch (err) {
     return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+};
+
+
+
+//List of all top video or audio cast
+exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const searchData = (req.query.searchData || "").trim();
+    const categoryNameFilter = (req.query.categoryName || "").trim();
+    const contactLevelFilter = (req.query.contact_level || "").trim();
+
+    const type = req.query.type;
+
+    let filter = { isDeleted: false };
+    let model;
+    let castType;
+
+    if (type === '1') {
+      model = Audio;
+      castType = "audio";
+    } else if (type === '2') {
+      model = Video;
+      castType = "video";
+    } else {
+      return res.status(400).json({  status: false,  code: 400,  message: "Invalid type provided. Use 1 for Audio and 2 for Video."  });
+    }
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { _id: -1 } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          title: { $ifNull: [`$title.${language}`, ""] },
+          categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          duration: { $ifNull: [`$duration.${language}`, ""] },
+          featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+        }
+      }
+    ];
+
+    // 🔍 Build dynamic filters
+    const matchConditions = [];
+
+    if (searchData) {
+      matchConditions.push({ title: { $regex: searchData, $options: "i" } });
+    }
+
+    if (categoryNameFilter) {
+      matchConditions.push({ categoryName: { $regex: categoryNameFilter, $options: "i" } });
+    }
+
+    if (contactLevelFilter) {
+      matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
+    }
+
+    if (matchConditions.length > 0) {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+
+    // Final projection
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: 1,
+        duration: 1,
+        createdAt: {
+          $dateToString: {
+            format: "%d-%m-%Y",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata"
+          }
+        },
+        categoryName: 1,
+        contact_level: 1,
+        featured_image: 1
+      }
+    });
+
+    const result = await model.aggregate(pipeline);
+
+    const finalData = result.map(item => ({
+      _id: item._id,
+      title: item.title.trim(),
+      duration: item.duration,
+      createdAt: item.createdAt,
+      categoryName: item.categoryName.trim(),
+      contact_level: item.contact_level,
+      featured_image: item.featured_image
+        ? `${process.env.IMAGE_BASE_URL}/uploads/${item.featured_image}`
+        : null
+    }));
+
+    return res.status(200).json({
+      status: true,
+      code: 200,
+      message: `List of top ${castType} cast fetched successfully`,
+      data: finalData
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      code: 500,
+      message: err.message || "Internal Server Error"
+    });
   }
 };
 

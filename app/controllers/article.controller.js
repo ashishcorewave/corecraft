@@ -1,4 +1,5 @@
 const Article = require("../models/article.model.js")
+const Doctor = require('../models/doctor.model.js');
 const ArticleComment = require("../models/article.comment.model.js")
 const ArticleLike = require("../models/article.like.model.js")
 const QuizResponse = require("../models/quiz.response.model.js")
@@ -936,6 +937,7 @@ exports.ArticleByCategory = async (req, res) => {
   }
 }
 
+
 exports.listOfTopArticles = async (req, res) => {
   try {
     const language = req.query.language || req.headers['language'] || 'en';
@@ -1009,6 +1011,317 @@ exports.listOfTopArticles = async (req, res) => {
     return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
   } catch (err) {
     return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
+  }
+};
+
+
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // months are zero-based
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+//List of All Articles 
+exports.listOfAllArticles = async (req, res) => {
+  try {
+    const language = req.query.language || req.headers["language"] || "en";
+    const searchData = (req.query.searchData || "").trim();
+    const type = req.query.type;
+    const id = req.query.id;
+    const categoryNameFilter = (req.query.categoryName || "").trim();
+    const contactLevelFilter = (req.query.contact_level || "").trim();
+
+    if (type && id) {
+      const objectId = new mongoose.Types.ObjectId(id);
+
+      // TYPE 0: Doctor-wise articles
+      if (type === "0") {
+        const pipeline = [
+          { $match: { doctorId: objectId, isDeleted: false } },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryResult"
+            }
+          },
+          {
+            $unwind: {
+              path: "$categoryResult",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $addFields: {
+              localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+              localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+              localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          }
+        ];
+
+        // Filters
+        const matchConditions = [];
+
+        if (searchData) {
+          matchConditions.push({ localizedTitle: { $regex: searchData, $options: "i" } });
+        }
+
+        if (categoryNameFilter) {
+          matchConditions.push({ localizedCategoryName: { $regex: categoryNameFilter, $options: "i" } });
+        }
+
+        if (contactLevelFilter) {
+          matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
+        }
+
+        if (matchConditions.length > 0) {
+          pipeline.push({ $match: { $and: matchConditions } });
+        }
+
+        pipeline.push({
+          $project: {
+            _id: 1,
+            title: "$localizedTitle",
+            description: "$localizedDescription",
+            image: "$Img",
+            contact_level: 1,
+            createdAt: {
+              $dateToString: {
+                format: "%d-%m-%Y",
+                date: "$createdAt",
+                timezone: "Asia/Kolkata"
+              }
+            },
+            categoryName: "$localizedCategoryName"
+          }
+        });
+
+        const articles = await Article.aggregate(pipeline);
+
+        const finalDoctorArticles = articles.map(item => ({
+          _id: item._id,
+          title: item.title.trim(),
+          description: item.description.trim(),
+          createdAt: item.createdAt,
+          categoryName: item.categoryName.trim(),
+          contact_level: item.contact_level,
+          image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
+        }));
+        return res.status(200).json({
+          status: true,
+          code: "200",
+          message: "List of top articles fetched successfully",
+          data: finalDoctorArticles
+        });
+      }
+
+      // TYPE 1: Category-wise articles
+      if (type === "1") {
+        const filter = {
+          isDeleted: false,
+          category: new mongoose.Types.ObjectId(req.query.id)
+        };
+        const pipeline = [
+          { $match: filter },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryResult"
+            }
+          },
+          {
+            $unwind: {
+              path: "$categoryResult",
+              preserveNullAndEmptyArrays: true
+            }
+          },
+          {
+            $addFields: {
+              localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+              localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+              localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          }
+        ];
+
+        // Filters
+        const matchConditions = [];
+
+        if (searchData) {
+          matchConditions.push({ localizedTitle: { $regex: searchData, $options: "i" } });
+        }
+
+        if (categoryNameFilter) {
+          matchConditions.push({ localizedCategoryName: { $regex: categoryNameFilter, $options: "i" } });
+        }
+
+        if (contactLevelFilter) {
+          matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
+        }
+
+        if (matchConditions.length > 0) {
+          pipeline.push({ $match: { $and: matchConditions } });
+        }
+
+        pipeline.push({
+          $project: {
+            _id: 1,
+            title: "$localizedTitle",
+            description: "$localizedDescription",
+            image: "$Img",
+            contact_level: 1,
+            createdAt: {
+              $dateToString: {
+                format: "%d-%m-%Y",
+                date: "$createdAt",
+                timezone: "Asia/Kolkata"
+              }
+            },
+            categoryName: "$localizedCategoryName"
+          }
+        });
+
+        const articles = await Article.aggregate(pipeline);
+
+        const finalData = articles.map(item => ({
+          _id: item._id,
+          title: item.title.trim(),
+          description: item.description.trim(),
+          createdAt: item.createdAt,
+          categoryName: item.categoryName.trim(),
+          contact_level: item.contact_level,
+          image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
+        }));
+
+        return res.status(200).json({
+          status: true,
+          code: "200",
+          message: "Category articles fetched successfully",
+          data: finalData
+        });
+      }
+    }
+
+    // Default listing (no type/id)
+    const filter = { isDeleted: false };
+
+    const pipeline = [
+      { $match: filter },
+      { $sort: { _id: -1 } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "categoryResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$categoryResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          localizedTitle: {
+            $ifNull: [
+              { $getField: { field: language, input: "$title" } },
+              ""
+            ]
+          },
+          localizedDescription: {
+            $ifNull: [
+              { $getField: { field: language, input: "$description" } },
+              ""
+            ]
+          },
+          localizedCategoryName: {
+            $ifNull: [
+              { $getField: { field: language, input: "$categoryResult.name" } },
+              ""
+            ]
+          }
+        }
+      }
+    ];
+
+    const matchConditions = [];
+
+    if (searchData) {
+      matchConditions.push({
+        $or: [
+          { localizedTitle: { $regex: searchData, $options: "i" } },
+          { localizedCategoryName: { $regex: searchData, $options: "i" } },
+          { localizedDescription: { $regex: searchData, $options: "i" } }
+        ]
+      });
+    }
+
+    if (categoryNameFilter) {
+      matchConditions.push({
+        localizedCategoryName: { $regex: categoryNameFilter, $options: "i" }
+      });
+    }
+
+    if (contactLevelFilter) {
+      matchConditions.push({
+        contact_level: { $regex: contactLevelFilter, $options: "i" }
+      });
+    }
+
+    if (matchConditions.length > 0) {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+
+    pipeline.push({
+      $project: {
+        _id: 1,
+        title: "$localizedTitle",
+        description: "$localizedDescription",
+        image: "$Img",
+        contact_level: 1,
+        createdAt: {
+          $dateToString: {
+            format: "%d-%m-%Y",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata"
+          }
+        },
+        categoryName: "$localizedCategoryName"
+      }
+    });
+
+    const articles = await Article.aggregate(pipeline);
+
+    const finalData = articles.map(item => ({
+      _id: item._id,
+      title: item.title.trim(),
+      description: item.description.trim(),
+      createdAt: item.createdAt,
+      contact_level: item.contact_level,
+      categoryName: item.categoryName.trim(),
+      image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
+    }));
+
+    return res.status(200).json({
+      status: true,
+      code: "200",
+      message: "List of all articles fetched successfully",
+      data: finalData
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: false,
+      code: 500,
+      message: err.message || "Internal Server Error"
+    });
   }
 };
 

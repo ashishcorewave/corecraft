@@ -11,5 +11,6 @@ router.get('/top-doctors', doctor.listOfTopDoctors);
 router.put('/inactive-doctor', doctor.inActiveDoctor);
 router.get('/doctor-details', doctor.doctorDetails);
 router.put('/edit-doctor', doctor.editDoctor);
+router.get('/all-doctor', doctor.listOfAllDoctors);
 
 module.exports = router;

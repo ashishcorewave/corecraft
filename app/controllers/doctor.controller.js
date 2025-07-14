@@ -342,3 +342,81 @@ exports.editDoctor = async (req, res) => {
         return res.status(500).send({ status: false, message: err.message || "Internal Server Error" });
     }
 };
+
+
+exports.listOfAllDoctors = async (req, res) => {
+    try {
+        const searchData = (req.query.searchData || "").trim();
+        const language = req.query.language || req.headers["language"] || "en";
+
+        const filter = { isDeleted: false };
+
+        const pipeline = [
+            { $match: filter },
+            { $sort: { _id: -1 } },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "categoryResult"
+                }
+            },
+            {
+                $lookup: {
+                    from: "articles",
+                    localField: "_id",
+                    foreignField: "doctorId",
+                    as: "articles"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    doctorName: 1,
+                    doctorImage: 1,
+                    experience: 1,
+                    articles: 1,
+                    categoryResult: 1
+                }
+            }
+        ];
+
+        const rawDoctors = await Doctor.aggregate(pipeline);
+
+        const finalData = rawDoctors
+            .filter(item => item.doctorName?.[language]) // <- Only include doctors with language-specific name
+            .map(item => {
+                const doctorName = item.doctorName[language]; // safe now
+                return {
+                    _id: item._id,
+                    doctorName,
+                    doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
+                    experience: item.experience,
+                    articleCount: item.articles.length,
+                    categoryName: (item.categoryResult || [])
+                        .map(cat => cat.name?.[language])
+                        .filter(name => name) // remove null/undefined
+                };
+            });
+
+
+        // Optional search filter after localization
+        const filteredData = searchData  ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase()))  : finalData;
+
+        return res.status(200).json({
+            status: true,
+            code: "200",
+            message: "List of top doctors fetched successfully",
+            topDoctors: filteredData
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            status: false,
+            code: "500",
+            message: err.message || 'Internal Server Error'
+        });
+    }
+};
+
