@@ -552,8 +552,6 @@ exports.uploadArticleImage = async (req, res) => {
 }
 
 exports.likeArticle = async (req, res) => {
-  console.log("Hello hllo hello");
-  console.log(req.headers, "Headers");
   const token = req.headers['access-token'] || req.headers['authorization'];
   const userDetail = await userHelper.detail(token);
   // let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])

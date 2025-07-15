@@ -304,7 +304,7 @@ exports.delete = async (req, res) => {
 
 
 exports.likeVideo = async (req, res) => {
-  let userDetail = await userHelper.detail(req.headers["access-token"])
+  let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
   if (userDetail.status === 0) {
     return res.send(userDetail)
   }
@@ -312,7 +312,7 @@ exports.likeVideo = async (req, res) => {
   let getPost = await Video.findOne({ _id: postId })
   if (getPost) {
     let isLiked = await VideoLike.findOne({
-      ideo_id: postId,
+      video_id: postId,
       user_id: userDetail.data.user_id
     })
     if (isLiked === null) {
@@ -323,7 +323,7 @@ exports.likeVideo = async (req, res) => {
       like
         .save()
         .then(async (data) => {
-          await Video.updateOne({ _id: postId }, { $inc: { likeCount: +1 } })
+          await Video.updateOne({ _id: postId }, { $inc: { likeCount: +1 } });
           // await userHelper.assignPoint(userDetail.data.user_id, "Like On Feed")
           return res.send({
             status: true,
@@ -332,9 +332,7 @@ exports.likeVideo = async (req, res) => {
           })
         })
         .catch((err) => {
-          return res.status(500).send({
-            message: err.message || messages.create.error
-          })
+          return res.status(500).send({ message: err.message || messages.create.error})
         })
     } else {
       VideoLike
