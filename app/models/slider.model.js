@@ -6,6 +6,11 @@ const SliderSchema = mongoose.Schema(
       type: String,
       required: true
     },
+    sliderType:{
+       type:String,
+       required:true,
+       enum:["slider", "audiocast", "videocast", "article"]
+    },
     image: {
       type: String,
       default: ""

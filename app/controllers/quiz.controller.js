@@ -75,8 +75,7 @@ exports.getById = async (req, res) => {
       _id: new mongoose.Types.ObjectId(req.params.quizId)
     };
 
-    const quiz = await Quiz.findOne(filter).select("_id title description Img").lean();
-
+    const quiz = await Quiz.findOne(filter).select("_id title description Img").populate("questions").lean();
     if (!quiz) {
       return res.status(404).json({ status: false, code: 404, message: "Quiz not found" });
     }
@@ -85,6 +84,16 @@ exports.getById = async (req, res) => {
       _id: quiz._id,
       title: quiz.title?.[language] || "",
       description: quiz.description?.[language] || "",
+      questions: quiz.questions?.map((q) => ({
+        _id: q._id,
+        question: q.question?.[language] || "",
+        question_type: q.question_type,
+        answers: q.answers?.map(ans => ({
+          _id: ans._id,
+          answer: ans.answer?.[language] || "",
+          isCorrect: ans.isCorrect?.[language]
+        })) || []
+      })) || []
     };
     return res.status(200).json({ status: true, code: 200, message: "Quiz details fetched successfully", data: response });
   } catch (err) {
@@ -95,6 +104,8 @@ exports.getById = async (req, res) => {
     });
   }
 };
+
+
 
 
 

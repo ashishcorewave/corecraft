@@ -427,7 +427,7 @@ exports.createComment = async (req, res) => {
 }
 
 
-const  formatDateToDDMMYYYY = (dateStr) => {
+const formatDateToDDMMYYYY = (dateStr) => {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -441,7 +441,7 @@ exports.getAllComments = async (req, res) => {
   try {
     const token = req.headers['access-token'] || req.headers['authorization'];
     const userDetail = await userHelper.detail(token);
-   
+
     const language = req.headers["language"] || req.query.language || "en";
 
     // Fetch full user profile using user_id
@@ -481,7 +481,7 @@ exports.getAllComments = async (req, res) => {
 
       return {
         ...d,
-        createdAt:formatDateToDDMMYYYY(d.createdAt),
+        createdAt: formatDateToDDMMYYYY(d.createdAt),
         article: article._id || "",
         title: articleTitle,
         body: typeof d.body === "object" ? (d.body[language] || "") : d.body,
@@ -940,6 +940,7 @@ exports.detailsOfArticle = async (req, res) => {
           _id: 1,
           title: "$title",
           description: "$description",
+          content: "$content",
           image: "$Img",
           createdAt: {
             $dateToString: {
@@ -953,6 +954,8 @@ exports.detailsOfArticle = async (req, res) => {
           likeCount: 1,
           doctorImage: "$doctorResult.doctorImage",
           isLiked: 1,
+          quiz: 1,
+          tags:"$tags",
         },
       },
     ];
@@ -972,6 +975,8 @@ exports.detailsOfArticle = async (req, res) => {
 
     // Dynamically fetch based on language with fallback
     const title = article.title?.[language] || "";
+    const tags = article.tags?.[language] || "";
+    const content = article.content?.[language] || "";
     const description = article.description?.[language] || "";
     const image = article.image || "";
     const categoryName = article.categoryName?.[language] || "";
@@ -983,6 +988,9 @@ exports.detailsOfArticle = async (req, res) => {
       categoryName: categoryName.trim(),
       createdAt: article.createdAt,
       authorName: authorName,
+      content: content,
+      tags:tags,
+      quiz: article.quiz,
       likeCount: article.likeCount || 0,
       image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : null,
       doctorImage: article.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${article.doctorImage}` : null,

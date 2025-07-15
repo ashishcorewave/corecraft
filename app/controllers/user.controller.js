@@ -518,7 +518,7 @@ exports.login = (req, res) => {
         if (bcrypt.compareSync(req.body.password, user.password)) {
           // if(user.isVerified){
           var accessToken = await TokenModel.get(user._id, user.isAdmin)
-          console.log(accessToken,"accessToken")
+          console.log(accessToken, "accessToken")
           if (accessToken) {
             await AppUsage.create({ user_id: user._id })
             let resp = {
@@ -570,79 +570,6 @@ exports.login = (req, res) => {
     })
 }
 
-// exports.signUp = async (req, res) => {
-//   console.log("Hello signup")
-//   let first_name = req.body.first_name
-//   let email = req.body.email
-//   let password = req.body.password
-//   let gender = req.body.gender || ""
-//   let contact_number = req.body.contact_number || ""
-//   let checkUser = await User.findOne({ email: email, isDeleted: false }, { email: 1 }).lean();
-//   if (checkUser) {
-//     return res.send({ status: false, message: messages.signup.fail })
-//   } else {
-//     if (email && password) {
-//       const otpGenerator = require('otp-generator')
-//       let otp = await otpGenerator.generate(6, { digits: true, alphabets: false, upperCase: false, specialChars: false });
-//       let user = new User({
-//         first_name: first_name,
-//         email: email,
-//         password: bcrypt.hashSync(password),
-//         otp: otp,
-//         gender: gender,
-//         contact_number: contact_number
-//       })
-//       if (gender) {
-//         user.gender = gender
-//       }
-//       if (contact_number) {
-//         user.contact_number = contact_number
-//       }
-//       user
-//         .save()
-//         .then(async (data) => {
-//           var accessToken = await TokenModel.get(data._id)
-//           if (accessToken) {
-//             await AppUsage.create({ user_id: data._id })
-//             let resp = {
-//               id: data._id,
-//               first_name: data.first_name,
-//               last_name: "",
-//               email: data.email,
-//               gender: data.gender || "",
-//               contact_number: data.contact_number || "",
-//               profile_picture: "",
-//               address: "",
-//               state: "",
-//               city: "",
-//               pincode: "",
-//               otp: data.otp,
-//               user_type: data.user_type || null,
-//               points_balance: data.points_balance || 0,
-//               token: accessToken.access_token
-//             }
-//             return res.send({
-//               status: true,
-//               message: messages.signup.success,
-//               data: resp
-//             })
-//           } else {
-//             return res.send({ status: false, message: accessToken.message })
-//           }
-//         })
-//         .catch((err) => {
-//           return res.status(500).send({
-//             message: err.message || messages.create.error
-//           })
-//         })
-//     } else {
-//       return res.send({ status: false, message: messages.signup.error })
-//     }
-//   }
-// }
-
-
-
 exports.signUp = async (req, res) => {
   let first_name = req.body.first_name
   let email = req.body.email
@@ -664,7 +591,15 @@ exports.signUp = async (req, res) => {
         gender: gender,
         contact_number: contact_number
       })
-      user.save().then(async (data) => {
+      if (gender) {
+        user.gender = gender
+      }
+      if (contact_number) {
+        user.contact_number = contact_number
+      }
+      user
+        .save()
+        .then(async (data) => {
           var accessToken = await TokenModel.get(data._id)
           if (accessToken) {
             await AppUsage.create({ user_id: data._id })
@@ -683,12 +618,13 @@ exports.signUp = async (req, res) => {
               otp: data.otp,
               user_type: data.user_type || null,
               points_balance: data.points_balance || 0,
-              token: accessToken.access_token
+              token: accessToken.accessToken
             }
             return res.send({
               status: true,
               message: messages.signup.success,
-              data: resp
+              data: resp,
+
             })
           } else {
             return res.send({ status: false, message: accessToken.message })
@@ -704,6 +640,7 @@ exports.signUp = async (req, res) => {
     }
   }
 }
+
 
 exports.verifyOtp = async (req, res) => {
   let email = req.body.email
@@ -1095,7 +1032,7 @@ exports.myFeeds = async (req, res) => {
             data[i].user.profile_picture = image
           }
         }
-    
+
         return res.send({
           status: true,
           message: messages.read.success,
@@ -1244,8 +1181,110 @@ exports.getUserBadges = async (req, res) => {
     })
 }
 
+// exports.updateProfile = async (req, res) => {
+//   let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
+//   let name = req.body.name || ""
+//   let age = req.body.age || ""
+//   let gender = req.body.gender || ""
+//   let contact = req.body.contact || ""
+//   let state = req.body.state || ""
+//   let city = req.body.city || ""
+//   let user_type = req.body.user_type || ""
+//   let cancer_type = req.body.cancer_type || ""
+//   let join_our_group = req.body.join_our_group || ""
+//   let treatment_journey = req.body.treatment_journey || ""
+//   let looking_for = req.body.looking_for || ""
+//   if (userDetail.status === 0) {
+//     return res.send(userDetail)
+//   } else {
+//     let updateData = {}
+
+//     // const uploadSigleFile = await commonFunction.uploadSingleFile(req.files.profile_picture, "ics_user_profile");
+//     // if (uploadSigleFile?.code === 422) {
+//     //   return res.status(422).json(uploadSigleFile);
+//     // }
+
+//     // req.body.profile_picture = uploadSigleFile.filePath;
+
+//     if (name) {
+//       updateData.first_name = name
+//     }
+
+//     if (age) {
+//       updateData.age = age
+//     }
+
+//     if (gender) {
+//       updateData.gender = gender
+//     }
+
+//     if (contact) {
+//       updateData.contact_number = contact
+//     }
+
+//     if (state) {
+//       updateData.state = state
+//     }
+
+//     if (city) {
+//       updateData.city = city
+//     }
+
+//     if (cancer_type) {
+//       updateData.cancer_type = cancer_type
+//     }
+
+//     if (user_type) {
+//       updateData.user_type = user_type
+//     }
+
+//     if (join_our_group) {
+//       updateData.join_our_group = join_our_group
+//     }
+
+//     if (treatment_journey) {
+//       updateData.treatment_journey = treatment_journey
+//     }
+
+//     if (looking_for) {
+//       updateData.looking_for = looking_for
+//     }
+
+
+//     // if (req.body.profile_picture) {
+//     //   updateData.profile_picture = req.body.profile_picture
+//     // }
+//     User.findByIdAndUpdate(userDetail.data.user_id, updateData, { new: true })
+//       .then((data) => {
+//         if (data) {
+//           return res.send({
+//             status: true,
+//             message: messages.update.success,
+//             data: data
+//           })
+//         }
+//         return res.status(404).send({
+//           message: messages.update.error
+//         })
+//       })
+//       .catch((err) => {
+//         if (err.kind === "ObjectId") {
+//           return res.status(404).send({
+//             message: messages.update.error
+//           })
+//         }
+//         return res.status(500).send({
+//           message: messages.update.error
+//         })
+//       })
+//   }
+
+// }
+
+
 exports.updateProfile = async (req, res) => {
-  let userDetail = await userHelper.detail(req.headers["access-token"] || req.headers["authorization"])
+  console.log(req.body, "Req.body");
+  let userDetail = await userHelper.detail(req.headers["access-token"])
   let name = req.body.name || ""
   let age = req.body.age || ""
   let gender = req.body.gender || ""
@@ -1262,12 +1301,7 @@ exports.updateProfile = async (req, res) => {
   } else {
     let updateData = {}
 
-    // const uploadSigleFile = await commonFunction.uploadSingleFile(req.files.profile_picture, "ics_user_profile");
-    // if (uploadSigleFile?.code === 422) {
-    //   return res.status(422).json(uploadSigleFile);
-    // }
-
-    // req.body.profile_picture = uploadSigleFile.filePath;
+    let profilePicture = req.files?.profile_picture
 
     if (name) {
       updateData.first_name = name
@@ -1314,9 +1348,12 @@ exports.updateProfile = async (req, res) => {
     }
 
 
-    // if (req.body.profile_picture) {
-    //   updateData.profile_picture = req.body.profile_picture
-    // }
+    const uploadSigleFile = await commonFunction.uploadSingleFile(req.files?.profile_picture, "ics_user_profile");
+    if (uploadSigleFile?.code === 422) {
+      return res.status(422).json(uploadSigleFile);
+    }
+
+    req.body.profile_picture = uploadSigleFile.filePath;
     User.findByIdAndUpdate(userDetail.data.user_id, updateData, { new: true })
       .then((data) => {
         if (data) {
