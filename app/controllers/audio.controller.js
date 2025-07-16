@@ -1026,7 +1026,22 @@ exports.detailsOfAudioCast = async (req, res) => {
         }
       },
       {
+        $lookup: {
+          from: "audiolikes",
+          localField: "_id",
+          foreignField: "audio_id",
+          as: "likeAudio"
+        }
+      },
+      {
+        $unwind: {
+          path: "$likeAudio",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
         $addFields: {
+          isLiked: 1,
           title: { $ifNull: [`$title.${language}`, ""] },
           categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
           duration: { $ifNull: [`$duration.${language}`, ""] },
@@ -1034,6 +1049,19 @@ exports.detailsOfAudioCast = async (req, res) => {
           description: { $ifNull: [`$description.${language}`, ""] },
           source: { $ifNull: [`$source.${language}`, ""] },
           audio_link: { $ifNull: [`$audio_link.${language}`, ""] }
+        }
+      },
+      {
+        $match: {
+          $and: [
+            { title: { $ne: "" } },
+            { categoryName: { $ne: "" } },
+            { duration: { $ne: "" } },
+            { featured_image: { $ne: "" } },
+            { description: { $ne: "" } },
+            { source: { $ne: "" } },
+            { audio_link: { $ne: "" } },
+          ]
         }
       },
       {
@@ -1048,6 +1076,7 @@ exports.detailsOfAudioCast = async (req, res) => {
           likeCount: 1,
           commentCount: 1,
           contact_level: 1,
+          isLiked: "$likeAudio.isLiked",
           createdAt: {
             $dateToString: {
               format: "%d-%m-%Y",
@@ -1076,7 +1105,7 @@ exports.detailsOfAudioCast = async (req, res) => {
 
 
 
-//List of all top video or audio cast filter category or contact level peding
+//List of all top video or audio cast filter category or contact level peding===> done filter languages bases
 exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
@@ -1124,6 +1153,16 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
             categoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
             duration: { $ifNull: [`$duration.${language}`, ""] },
             featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { title: { $ne: "" } },
+              { categoryName: { $ne: "" } },
+              { duration: { $ne: "" } },
+              { featured_image: { $ne: "" } },
+            ]
           }
         }
       ];
@@ -1243,6 +1282,17 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
               localizedDescription: { $ifNull: [`$description.${language}`, ""] },
               localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
             }
+          },
+          {
+            $match: {
+              $and: [
+                { localizedTitle: { $ne: "" } },
+                { localizedDuration: { $ne: "" } },
+                { localizedCategoryName: { $ne: "" } },
+                { localizedfeatured_image: { $ne: "" } },
+                { localizedDescription: { $ne: "" } },
+              ]
+            }
           }
         ];
 
@@ -1323,6 +1373,17 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
               localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
               localizedDescription: { $ifNull: [`$description.${language}`, ""] },
               localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          },
+          {
+            $match: {
+              $and: [
+                { localizedTitle: { $ne: "" } },
+                { localizedDuration: { $ne: "" } },
+                { localizedCategoryName: { $ne: "" } },
+                { localizedfeatured_image: { $ne: "" } },
+                { localizedDescription: { $ne: "" } },
+              ]
             }
           }
         ];
@@ -1443,6 +1504,16 @@ exports.listOfTopDoctAudioOrVideo = async (req, res) => {
             localizedDescription: { $ifNull: [`$description.${language}`, ""] },
             localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
           }
+        },
+        {
+          $match: {
+            $and: [
+              { localizedTitle: { $ne: "" } },
+              { localizedDescription: { $ne: "" } },
+              { localizedCategoryName: { $ne: "" } },
+              { localizedfeatured_image: { $ne: "" } }
+            ]
+          }
         }
       ];
 
@@ -1521,6 +1592,16 @@ exports.listOfTopDoctAudioOrVideo = async (req, res) => {
             localizedfeatured_image: { $ifNull: [`$featured_image.${language}`, ""] },
             localizedDescription: { $ifNull: [`$description.${language}`, ""] },
             localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+          }
+        },
+        {
+          $match: {
+            $and: [
+              { localizedTitle: { $ne: "" } },
+              { localizedDescription: { $ne: "" } },
+              { localizedCategoryName: { $ne: "" } },
+              { localizedfeatured_image: { $ne: "" } }
+            ]
           }
         }
       ];

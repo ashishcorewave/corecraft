@@ -217,7 +217,7 @@ exports.listOfTopDoctors = async (req, res) => {
                     doctorName: "$localizedDoctorName",
                     doctorImage: 1,
                     experience: 1,
-                    type:type,
+                    type: type,
                     contentCount: { $size: "$content" },
                     categoryName: {
                         $map: {
@@ -240,7 +240,7 @@ exports.listOfTopDoctors = async (req, res) => {
 
         const listOfTopDoctorsQuery = await Doctor.aggregate(pipeline);
         const count = await Doctor.countDocuments(filter);
-        console.log(count,"Count");
+        console.log(count, "Count");
 
         const finalData = listOfTopDoctorsQuery.map(item => ({
             ...item,
@@ -467,75 +467,245 @@ exports.listOfAllDoctors = async (req, res) => {
     try {
         const searchData = (req.query.searchData || "").trim();
         const language = req.query.language || req.headers["language"] || "en";
+        const queryType = req.query.queryType;
+
+          const typeMap = {
+            '0': 'article',
+            '1': 'audiocast',
+            '2': 'videocast'
+        };
+
+        const selectedType = typeMap[queryType];
 
         const filter = { isDeleted: false };
+        //Article
+        if (queryType === '0') {
 
-        const pipeline = [
-            { $match: filter },
-            { $sort: { _id: -1 } },
-            {
-                $lookup: {
-                    from: "categories",
-                    localField: "category",
-                    foreignField: "_id",
-                    as: "categoryResult"
-                }
-            },
-            {
-                $lookup: {
-                    from: "articles",
-                    localField: "_id",
-                    foreignField: "doctorId",
-                    as: "articles"
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    doctorName: 1,
-                    doctorImage: 1,
-                    experience: 1,
-                    articles: 1,
-                    categoryResult: 1
-                }
-            }
-        ];
+            const pipeline = [
+                { $match: { isDeleted: false, type: "article" } },
+                { $sort: { _id: -1 } },
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "categoryResult"
+                    }
+                },
 
-        const rawDoctors = await Doctor.aggregate(pipeline);
+                {
+                    $lookup: {
+                        from: "articles",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "articles"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: selectedType === "article" ? "articles" : selectedType === "audiocast" ? "audiocasts" : "videocasts",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "content"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        doctorName: 1,
+                        doctorImage: 1,
+                        experience: 1,
+                        articles: 1,
+                        categoryResult: 1,
+                        contentCount: { $size: "$content" },
+                    }
+                }
+            ];
 
-        const finalData = rawDoctors
-            .filter(item => item.doctorName?.[language]) // <- Only include doctors with language-specific name
-            .map(item => {
-                const doctorName = item.doctorName[language]; // safe now
-                return {
-                    _id: item._id,
-                    doctorName,
-                    doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
-                    experience: item.experience,
-                    articleCount: item.articles.length,
-                    categoryName: (item.categoryResult || [])
-                        .map(cat => cat.name?.[language])
-                        .filter(name => name) // remove null/undefined
-                };
+            const rawDoctors = await Doctor.aggregate(pipeline);
+
+            const finalData = rawDoctors
+                .filter(item => item.doctorName?.[language])
+                .map(item => {
+                    const doctorName = item.doctorName[language];
+                    return {
+                        _id: item._id,
+                        doctorName,
+                        doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
+                        experience: item.experience,
+                        type: queryType,
+                        contentCount:item.contentCount,
+                        articleCount: item.articles.length,
+                        categoryName: (item.categoryResult || [])
+                            .map(cat => cat.name?.[language])
+                            .filter(name => name)
+                    };
+                });
+
+
+            // Optional search filter after localization
+            const filteredData = searchData ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase())) : finalData;
+
+            return res.status(200).json({
+                status: true,
+                code: "200",
+                message: "List of  Article doctors fetched successfully",
+                topDoctors: filteredData
             });
+        }
+
+        //podcast
+        if (queryType === '1') {
+
+            const pipeline = [
+                { $match:{ isDeleted: false, type: "audiocast"} },
+                { $sort: { _id: -1 } },
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "categoryResult"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "articles",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "articles"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: selectedType === "article" ? "articles" : selectedType === "audiocast" ? "audiocasts" : "videocasts",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "content"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        doctorName: 1,
+                        doctorImage: 1,
+                        experience: 1,
+                        articles: 1,
+                        categoryResult: 1,
+                        contentCount: { $size: "$content" },
+                    }
+                }
+            ];
+
+            const rawDoctors = await Doctor.aggregate(pipeline);
+
+            const finalData = rawDoctors
+                .filter(item => item.doctorName?.[language])
+                .map(item => {
+                    const doctorName = item.doctorName[language];
+                    return {
+                        _id: item._id,
+                        doctorName,
+                        contentCount:item.contentCount,
+                         type: queryType,
+                        doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
+                        experience: item.experience,
+                        articleCount: item.articles.length,
+                        categoryName: (item.categoryResult || [])
+                            .map(cat => cat.name?.[language])
+                            .filter(name => name)
+                    };
+                });
 
 
-        // Optional search filter after localization
-        const filteredData = searchData ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase())) : finalData;
+            // Optional search filter after localization
+            const filteredData = searchData ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase())) : finalData;
 
-        return res.status(200).json({
-            status: true,
-            code: "200",
-            message: "List of top doctors fetched successfully",
-            topDoctors: filteredData
-        });
+            return res.status(200).json({
+                status: true,
+                code: "200",
+                message: "List of Audio doctors fetched successfully",
+                topDoctors: filteredData
+            });
+        }
+
+        //video cast
+        if (queryType === '2') {
+
+            const pipeline = [
+                { $match:{ isDeleted: false, type: "videocast"} },
+                { $sort: { _id: -1 } },
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "categoryResult"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "articles",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "articles"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: selectedType === "article" ? "articles" : selectedType === "audiocast" ? "audiocasts" : "videocasts",
+                        localField: "_id",
+                        foreignField: "doctorId",
+                        as: "content"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        doctorName: 1,
+                        doctorImage: 1,
+                        experience: 1,
+                        articles: 1,
+                        categoryResult: 1,
+                        contentCount: { $size: "$content" },
+                    }
+                }
+            ];
+
+            const rawDoctors = await Doctor.aggregate(pipeline);
+
+            const finalData = rawDoctors
+                .filter(item => item.doctorName?.[language])
+                .map(item => {
+                    const doctorName = item.doctorName[language];
+                    return {
+                        _id: item._id,
+                        doctorName,
+                        contentCount:item.contentCount,
+                         type: queryType,
+                        doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
+                        experience: item.experience,
+                        articleCount: item.articles.length,
+                        categoryName: (item.categoryResult || [])
+                            .map(cat => cat.name?.[language])
+                            .filter(name => name)
+                    };
+                });
+
+
+            // Optional search filter after localization
+            const filteredData = searchData ? finalData.filter(d => d.doctorName.toLowerCase().includes(searchData.toLowerCase())) : finalData;
+
+            return res.status(200).json({
+                status: true,
+                code: "200",
+                message: "List of video doctors fetched successfully",
+                topDoctors: filteredData
+            });
+        }
 
     } catch (err) {
-        return res.status(500).json({
-            status: false,
-            code: "500",
-            message: err.message || 'Internal Server Error'
-        });
+        return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
     }
 };
 

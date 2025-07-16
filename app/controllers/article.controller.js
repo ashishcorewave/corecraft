@@ -672,90 +672,7 @@ exports.isTopArticlesMarks = async (req, res) => {
   }
 }
 
-//List of top Doctor artilcle
-
-// exports.listOfTopDoctorArticles = async (req, res) => {
-//   try {
-//     const language = req.query.language || req.headers['language'] || 'en';
-//     const searchData = (req.query.searchData || "").trim();
-//     const filter = {
-//       isDeleted: false,
-//       doctorId: new mongoose.Types.ObjectId(req.query.doctorId),
-//     };
-
-//     const doctorData = await Doctor.findOne({_id:req.query.doctorId});
-//     console.log(doctorData,"DoctorData");
-
-//     const pipeline = [
-//       { $match: filter },
-//       {
-//         $lookup: {
-//           from: "categories",
-//           localField: "category",
-//           foreignField: "_id",
-//           as: "categoryResult"
-//         }
-//       },
-//       {
-//         $unwind: {
-//           path: "$categoryResult",
-//           preserveNullAndEmptyArrays: true
-//         }
-//       },
-//       {
-//         $addFields: {
-//           localizedTitle: { $ifNull: [`$title.${language}`, ""] },
-//           localizedDescription: { $ifNull: [`$description.${language}`, ""] },
-//           localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
-//         }
-//       }
-//     ];
-
-//     // Apply search if searchData exists
-//     if (searchData) {
-//       pipeline.push({
-//         $match: {
-//           localizedTitle: { $regex: searchData, $options: "i" }
-//         }
-//       });
-//     }
-
-//     pipeline.push({
-//       $project: {
-//         _id: 1,
-//         title: "$localizedTitle",
-//         description: "$localizedDescription",
-//         image: "$Img",
-//         createdAt: {
-//           $dateToString: {
-//             format: "%d-%m-%Y",
-//             date: "$createdAt",
-//             timezone: "Asia/Kolkata"
-//           }
-//         },
-//         categoryName: "$localizedCategoryName"
-//       }
-//     });
-
-//     const articles = await Article.aggregate(pipeline);
-//     console.log(articles,"articles");
-
-//     const finalData = articles.map(item => ({
-//       _id: item._id,
-//       title: item.title.trim(),
-//       description: item.description.trim(),
-//       createdAt: item.createdAt,
-//       categoryName: item.categoryName.trim(),
-//       image: item.image ? `${process.env.IMAGE_BASE_URL}/uploads/${item.image}` : ""
-//     }));
-//     return res.status(200).json({ status: true, code: "200", message: "List of top articles fetched successfully", topArticles: finalData });
-//   } catch (err) {
-//     return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
-//   }
-// };
-
-
-
+//List of top Doctor artilcle done langages bases filter
 exports.listOfTopDoctorArticles = async (req, res) => {
   try {
     const language = req.query.language || req.headers['language'] || 'en';
@@ -801,6 +718,15 @@ exports.listOfTopDoctorArticles = async (req, res) => {
           localizedTitle: { $ifNull: [`$title.${language}`, ""] },
           localizedDescription: { $ifNull: [`$description.${language}`, ""] },
           localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+        }
+      },
+      {
+        $match: {
+          $and: [
+            { localizedTitle: { $ne: "" } },
+            { localizedDescription: { $ne: "" } },
+            { localizedCategoryName: { $ne: "" } }
+          ]
         }
       }
     ];
@@ -857,8 +783,6 @@ exports.listOfTopDoctorArticles = async (req, res) => {
     });
   }
 };
-
-
 
 
 exports.detailsOfArticle = async (req, res) => {
@@ -930,10 +854,33 @@ exports.detailsOfArticle = async (req, res) => {
           as: "likeArticleResult",
         },
       },
+      // {
+      //   $addFields: {
+      //     isLiked: { $gt: [{ $size: "$likeArticleResult" }, 0] },
+      //   },
+      // },
       {
         $addFields: {
           isLiked: { $gt: [{ $size: "$likeArticleResult" }, 0] },
-        },
+          localizedTitle: { $ifNull: [`$title.${language}`, ""] },
+          localizedDescription: { $ifNull: [`$description.${language}`, ""] },
+          localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] },
+          localizedAuthorName: { $ifNull: [`$doctorResult.doctorName.${language}`, ""] },
+          localizedContent: { $ifNull: [`$content.${language}`, ""] },
+          localizedTags: { $ifNull: [`$tags.${language}`, ""] }
+        }
+      },
+      {
+        $match: {
+          $and: [
+            { localizedTitle: { $ne: "" } },
+            { localizedDescription: { $ne: "" } },
+            { localizedCategoryName: { $ne: "" } },
+            { localizedAuthorName: { $ne: "" } },
+            { localizedContent: { $ne: "" } },
+            { localizedTags: { $ne: "" } }
+          ]
+        }
       },
       {
         $project: {
@@ -955,7 +902,7 @@ exports.detailsOfArticle = async (req, res) => {
           doctorImage: "$doctorResult.doctorImage",
           isLiked: 1,
           quiz: 1,
-          tags:"$tags",
+          tags: "$tags",
         },
       },
     ];
@@ -965,9 +912,9 @@ exports.detailsOfArticle = async (req, res) => {
     if (!result.length) {
       return res.status(404).json({
         status: false,
-        code: "404",
-        message: "Article not found",
-        articlesDetails: null,
+        code: "200",
+        message: "Details of article fetched successfully",
+        articlesDetails: [],
       });
     }
 
@@ -989,7 +936,7 @@ exports.detailsOfArticle = async (req, res) => {
       createdAt: article.createdAt,
       authorName: authorName,
       content: content,
-      tags:tags,
+      tags: tags,
       quiz: article.quiz,
       likeCount: article.likeCount || 0,
       image: image ? `${process.env.IMAGE_BASE_URL}/uploads/${image}` : null,
@@ -1117,7 +1064,16 @@ exports.listOfTopArticles = async (req, res) => {
           localizedDescription: { $ifNull: [`$description.${language}`, ""] },
           localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
         }
-      }
+      },
+      {
+        $match: {
+          $and: [
+            { localizedTitle: { $ne: "" } },
+            { localizedDescription: { $ne: "" } },
+            { localizedCategoryName: { $ne: "" } }
+          ]
+        }
+      },
     ];
 
     // Apply search if searchData exists
@@ -1171,7 +1127,7 @@ const formatDate = (dateStr) => {
   return `${day}-${month}-${year}`;
 };
 
-//List of All Articles 
+//List of All Articles  Done dynamic languages bases
 exports.listOfAllArticles = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
@@ -1207,6 +1163,15 @@ exports.listOfAllArticles = async (req, res) => {
               localizedTitle: { $ifNull: [`$title.${language}`, ""] },
               localizedDescription: { $ifNull: [`$description.${language}`, ""] },
               localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          },
+          {
+            $match: {
+              $and: [
+                { [`title.${language}`]: { $exists: true, $ne: "" } },
+                { [`description.${language}`]: { $exists: true, $ne: "" } },
+                { [`categoryResult.name.${language}`]: { $exists: true, $ne: "" } }
+              ]
             }
           }
         ];
@@ -1294,6 +1259,15 @@ exports.listOfAllArticles = async (req, res) => {
               localizedTitle: { $ifNull: [`$title.${language}`, ""] },
               localizedDescription: { $ifNull: [`$description.${language}`, ""] },
               localizedCategoryName: { $ifNull: [`$categoryResult.name.${language}`, ""] }
+            }
+          },
+          {
+            $match: {
+              $and: [
+                { [`title.${language}`]: { $exists: true, $ne: "" } },
+                { [`description.${language}`]: { $exists: true, $ne: "" } },
+                { [`categoryResult.name.${language}`]: { $exists: true, $ne: "" } }
+              ]
             }
           }
         ];
@@ -1397,7 +1371,17 @@ exports.listOfAllArticles = async (req, res) => {
             ]
           }
         }
-      }
+      },
+      {
+        // ✅ Exclude documents with empty localized fields
+        $match: {
+          $and: [
+            { localizedTitle: { $ne: "" } },
+            { localizedDescription: { $ne: "" } },
+            { localizedCategoryName: { $ne: "" } }
+          ]
+        }
+      },
     ];
 
     const matchConditions = [];
@@ -1424,9 +1408,13 @@ exports.listOfAllArticles = async (req, res) => {
       });
     }
 
+    // if (matchConditions.length > 0) {
+    //   pipeline.push({ $match: { $and: matchConditions } });
+    // }
     if (matchConditions.length > 0) {
       pipeline.push({ $match: { $and: matchConditions } });
     }
+
 
     pipeline.push({
       $project: {

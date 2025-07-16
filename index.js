@@ -149,6 +149,8 @@ app.use(require("./app/routes/videoComplaint.routes.js"));
 app.use(require("./app/routes/asyncSearch.routes.js"));
 app.use(require("./app/routes/doctor.routes.js"));
 app.use(require("./app/routes/pincode.routes.js"));
+app.use(require("./app/routes/new.resource.routes.js"));
+app.use(require("./app/routes/new.resource.item.routes.js"));
 // // Cron Job for Event Expiry
 cron.schedule("0 0 * * *", async () => {
   const date_now = Date.now();

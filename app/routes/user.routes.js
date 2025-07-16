@@ -11,31 +11,31 @@ router.put("/user/:userId", users.update);
 router.delete("/:userId", users.delete);
 
 //  🔹 Authentication & Profile
-router.post("/auth/admin", users.adminLogin);//done
+router.post("/auth/admin", users.adminLogin);
 
 router.get('/check', users.check);
 
-router.post("/auth/signup", users.signUp);//done
-router.post("/auth/login", users.login);//done
-router.post("/verifyOtp", users.verifyOtp);//done
-router.post("/profile", users.getUserProfile);//done
-router.post("/update-profile", users.updateProfile);//done
-router.post("/forgot", users.forgotPassword);//done
-router.post("/changePassword", users.changePassword);//done
+router.post("/auth/signup", users.signUp);
+router.post("/auth/login", users.login);
+router.post("/verifyOtp", users.verifyOtp);
+router.post("/profile", users.getUserProfile);
+router.post("/update-profile", users.updateProfile);
+router.post("/forgot", users.forgotPassword);
+router.post("/changePassword", users.changePassword);
 
 router.post("/auth/updateFcmToken", users.updateFcmToken);
 
 
 // 🔹 User Engagement & Stats
-router.post("/feed-stats", users.feedStatistics);//done
-router.post("/quiz-list", users.myQuizList);//done
-router.post("/events", users.myEvents);//done
-router.post("/my-feeds", users.myFeeds);//done
-router.post("/appUsage", users.appUsage);//done
-router.post("/getUserEngagement", users.getUserEngagement);//done
-router.post("/getUserBadges", users.getUserBadges);//done
-router.post("/getFilterList", users.getFilterList);//done
-router.post("/leaderBoard", users.getLeaderBoardData);//done
+router.post("/feed-stats", users.feedStatistics);
+router.post("/quiz-list", users.myQuizList);
+router.post("/events", users.myEvents);
+router.post("/my-feeds", users.myFeeds);
+router.post("/appUsage", users.appUsage);
+router.post("/getUserEngagement", users.getUserEngagement);
+router.post("/getUserBadges", users.getUserBadges);
+router.post("/getFilterList", users.getFilterList);
+router.post("/leaderBoard", users.getLeaderBoardData);
 
 // // 🔹 Social & Misc
 router.post("/socialSignUp", users.socialSignUp);
