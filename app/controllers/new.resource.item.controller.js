@@ -317,12 +317,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
             icon: resource.icon  ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.icon}`: null,
         };
 
-        return res.status(200).json({
-            code: 200,
-            status: true,
-            message: "Resource details fetched successfully",
-            data
-        });
+        return res.status(200).json({  code: 200,  status: true,  message: "Resource details fetched successfully",  data});
 
     } catch (err) {
         console.error("Details Error:", err);

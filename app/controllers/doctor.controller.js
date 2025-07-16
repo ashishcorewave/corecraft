@@ -211,10 +211,29 @@ exports.listOfTopDoctors = async (req, res) => {
                     localizedDoctorName: { $ifNull: [`$doctorName.${language}`, ""] }
                 }
             },
+            // {
+            //     $project: {
+            //         _id: 1,
+            //         doctorName: "$localizedDoctorName",
+            //         doctorImage: 1,
+            //         experience: 1,
+            //         type: type,
+            //         contentCount: { $size: "$content" },
+            //         categoryName: {
+            //             $map: {
+            //                 input: "$categoryResult",
+            //                 as: "cat",
+            //                 in: { $ifNull: [`$$cat.name.${language}`, ""] }
+            //             }
+            //         }
+            //     }
+            // },
             {
                 $project: {
                     _id: 1,
-                    doctorName: "$localizedDoctorName",
+                    doctorName: {
+                        $ifNull: [`$doctorName.${language}`, ""]
+                    },
                     doctorImage: 1,
                     experience: 1,
                     type: type,
@@ -227,7 +246,14 @@ exports.listOfTopDoctors = async (req, res) => {
                         }
                     }
                 }
+            },
+            {
+                $match: {
+                    doctorName: { $ne: "" },
+                    categoryName: { $elemMatch: { $ne: "" } }
+                }
             }
+
         ];
 
         if (searchData) {
@@ -262,94 +288,6 @@ exports.listOfTopDoctors = async (req, res) => {
         });
     }
 };
-
-
-// exports.listOfTopDoctors = async (req, res) => {
-//     try {
-//         const searchData = (req.query.searchData || "").trim();
-//         const language = req.query.language || req.headers["language"] || "en";
-//         const filter = { isTopDoctor: true, isDeleted: false ,  type : req.query.type};
-
-//         //Articles top doctors
-//         if (type === '0') {
-//             const pipeline = [
-//                 { $match: filter },
-//                 { $sort: { _id: -1 } },
-//                 {
-//                     $lookup: {
-//                         from: "categories",
-//                         localField: "category",
-//                         foreignField: "_id",
-//                         as: "categoryResult"
-//                     }
-//                 },
-//                 {
-//                     $lookup: {
-//                         from: "articles",
-//                         localField: "_id",
-//                         foreignField: "doctorId",
-//                         as: "articles"
-//                     }
-//                 },
-//                 {
-//                     $addFields: {
-//                         localizedDoctorName: { $ifNull: [`$doctorName.${language}`, ""] }
-//                     }
-//                 },
-//                 {
-//                     $project: {
-//                         _id: 1,
-//                         doctorName: "$localizedDoctorName",
-//                         doctorImage: 1,
-//                         experience: 1,
-//                         articleCount: { $size: "$articles" },
-//                         categoryName: {
-//                             $map: {
-//                                 input: "$categoryResult",
-//                                 as: "cat",
-//                                 in: { $ifNull: [`$$cat.name.${language}`, ""] }
-//                             }
-//                         }
-//                     }
-//                 }
-//             ];
-//             if (searchData) {
-//                 pipeline.push({
-//                     $match: {
-//                         doctorName: { $regex: searchData, $options: "i" }
-//                     }
-//                 });
-//             }
-
-//             const listOfTopDoctorsQuery = await Doctor.aggregate(pipeline);
-
-//             const finalData = listOfTopDoctorsQuery.map(item => ({
-//                 ...item,
-//                 doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null
-//             }));
-
-//             return res.status(200).json({ status: true, code: "200", message: "List of top doctors fetched successfully", topDoctors: finalData });
-//         }
-//         //Audio cast top doctors
-//         if (type === '1') {
-
-//         }
-
-
-//         //video cast top doctors
-//         if (type === '2') {
-
-//         }
-
-
-
-
-
-//     } catch (err) {
-//         return res.status(500).json({ status: false, code: "500", message: err.message || 'Internal Server Error' });
-//     }
-// };
-
 
 
 exports.inActiveDoctor = async (req, res) => {
@@ -469,7 +407,7 @@ exports.listOfAllDoctors = async (req, res) => {
         const language = req.query.language || req.headers["language"] || "en";
         const queryType = req.query.queryType;
 
-          const typeMap = {
+        const typeMap = {
             '0': 'article',
             '1': 'audiocast',
             '2': 'videocast'
@@ -534,7 +472,7 @@ exports.listOfAllDoctors = async (req, res) => {
                         doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
                         experience: item.experience,
                         type: queryType,
-                        contentCount:item.contentCount,
+                        contentCount: item.contentCount,
                         articleCount: item.articles.length,
                         categoryName: (item.categoryResult || [])
                             .map(cat => cat.name?.[language])
@@ -558,7 +496,7 @@ exports.listOfAllDoctors = async (req, res) => {
         if (queryType === '1') {
 
             const pipeline = [
-                { $match:{ isDeleted: false, type: "audiocast"} },
+                { $match: { isDeleted: false, type: "audiocast" } },
                 { $sort: { _id: -1 } },
                 {
                     $lookup: {
@@ -606,8 +544,8 @@ exports.listOfAllDoctors = async (req, res) => {
                     return {
                         _id: item._id,
                         doctorName,
-                        contentCount:item.contentCount,
-                         type: queryType,
+                        contentCount: item.contentCount,
+                        type: queryType,
                         doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
                         experience: item.experience,
                         articleCount: item.articles.length,
@@ -633,7 +571,7 @@ exports.listOfAllDoctors = async (req, res) => {
         if (queryType === '2') {
 
             const pipeline = [
-                { $match:{ isDeleted: false, type: "videocast"} },
+                { $match: { isDeleted: false, type: "videocast" } },
                 { $sort: { _id: -1 } },
                 {
                     $lookup: {
@@ -681,8 +619,8 @@ exports.listOfAllDoctors = async (req, res) => {
                     return {
                         _id: item._id,
                         doctorName,
-                        contentCount:item.contentCount,
-                         type: queryType,
+                        contentCount: item.contentCount,
+                        type: queryType,
                         doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
                         experience: item.experience,
                         articleCount: item.articles.length,
