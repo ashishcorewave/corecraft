@@ -869,7 +869,18 @@ exports.listOfTopAudioCastOrVideoCast = async (req, res) => {
           duration: { $ifNull: [`$duration.${language}`, ""] },
           featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
         }
+      },
+       {
+        $match: {
+          $and: [
+            { title: { $ne: "" } },
+            { featured_image: { $ne: "" } },
+            { categoryName: { $ne: "" } },
+            { duration: { $ne: "" } },
+          ]
+        }
       }
+
     ];
 
     if (searchData) {
