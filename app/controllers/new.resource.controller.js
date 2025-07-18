@@ -171,16 +171,14 @@ exports.allResources = async (req, res) => {
       isDeleted: false
     };
     const language = req.query.language || req.headers["language"] || "en";
-    const category = await NewResource.find(filter).sort({ _id: -1 }).select("_id name ").lean();
-    const data = category
-      .filter(item => item.name && item.name[language])
-      .map(item => {
+    const resource = await NewResource.find(filter).sort({ _id: -1 }).select("_id name").lean();
+    const data = resource.filter(item => item.name && item.name[language]).map(item => {
         return {
           _id: item._id,
           name: item.name[language],
         };
       });
-    return res.status(200).json({ status: true, code: "200", message: "Category filtered by language successfully", data: data });
+    return res.status(200).json({ status: true, code: 200, message: "All new resource successfully", data: data });
 
   } catch (err) {
     return res.status({ status: false, code: 500, message: err.message || 'Internal Server Error' });

@@ -6,6 +6,10 @@ const ResourceItemsSchema = mongoose.Schema(
       type: Object,
       required: true
     },
+    resourceId:{
+      type:mongoose.Types.ObjectId,
+      ref:'NewResource'
+    },
     specialistImage:{
         type:String,
         required:true

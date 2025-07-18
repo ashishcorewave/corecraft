@@ -8,13 +8,14 @@ exports.createNewResourceItem = async (req, res) => {
     try {
         const token = req.headers['access-token'] || req.headers['authorization'];
         const userDetail = await userHelper.detail(token);
-        const { specialistName, mobileNo, email, address, landmark, city, pincode, state, description } = req.body;
+        const { specialistName, mobileNo, email, address, landmark, resourceId, city, pincode, state, description } = req.body;
         const language = req.headers["language"] || req.body.language;
 
         const newResource = new NewResourceItem({
             specialistName: { [language]: specialistName },
             mobileNo: JSON.parse(mobileNo),
             email: email,
+            resourceId: resourceId,
             address: { [language]: address },
             landmark: { [language]: landmark },
             city: { [language]: city },
@@ -67,11 +68,13 @@ exports.listAllResourceItems = async (req, res) => {
             filter[`specialistName.${language}`] = { $regex: searchData, $options: "i" };
         }
 
-        const resources = await NewResourceItem.find(filter).sort({ _id: -1 });
+        const resources = await NewResourceItem.find(filter).populate("resourceId").sort({ _id: -1 });
 
         const responseData = resources.map(item => ({
             _id: item._id,
             specialistName: item.specialistName?.[language] || "",
+            resourceName: item.resourceId?.name?.[language] || "",
+            resourceId: item.resourceId?._id,
             mobileNo: item.mobileNo,
             email: item.email,
             address: item.address?.[language] || "",
@@ -112,9 +115,9 @@ exports.listAllResourceItems = async (req, res) => {
 exports.getSingleResourceItemById = async (req, res) => {
     try {
         const language = req.headers["language"] || "en";
-        const updateQuery = req.params.resourceId;
+        const resourceId = req.params.resourceId;
 
-        const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false });
+        const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false }).populate("resourceId");
 
         if (!resource) {
             return res.status(404).json({ code: "404", status: false, message: "Resource not found" });
@@ -123,6 +126,8 @@ exports.getSingleResourceItemById = async (req, res) => {
         const responseData = {
             _id: resource._id,
             specialistName: resource.specialistName?.[language] || "",
+            resourceName: resource.resourceId?.name?.[language] || "",
+            resourceId: resource.resourceId?._id,
             mobileNo: resource.mobileNo,
             email: resource.email,
             address: resource.address?.[language] || "",
@@ -146,7 +151,7 @@ exports.getSingleResourceItemById = async (req, res) => {
 exports.updateResourceItemById = async (req, res) => {
     try {
         const language = req.headers["language"] || req.body.language;
-        const { specialistName, mobileNo, email, address, landmark, city, state, description, pincode } = req.body;
+        const { specialistName, mobileNo, email, address, landmark, city, state, description, pincode, resourceId } = req.body;
         const updateQuery = {};
         // Update multilingual and regular fields
         if (specialistName) updateQuery["specialistName." + language] = specialistName;
@@ -159,6 +164,7 @@ exports.updateResourceItemById = async (req, res) => {
         if (mobileNo) updateQuery.mobileNo = JSON.parse(mobileNo);
         if (email) updateQuery.email = email;
         if (pincode) updateQuery.pincode = pincode;
+        if (resourceId) updateQuery.resourceId = resourceId;
 
         // Upload new specialist image if provided
         if (req.files && req.files?.specialistImage) {
@@ -217,8 +223,10 @@ exports.allResourcesList = async (req, res) => {
         const pincode = req.query.pincode || null;
         const state = req.query.state ? req.query.state.trim() : null;
 
+
         const filter = {
             isDeleted: false,
+            resourceId : new mongoose.Types.ObjectId(req.query.resourceId),
         };
 
         const pipeline = [
@@ -270,10 +278,10 @@ exports.allResourcesList = async (req, res) => {
             });
         }
         const resources = await NewResourceItem.aggregate(pipeline);
-        return res.status(200).json({   code: 200,   status: true,   message: "Resources fetched successfully",   data: resources});
+        return res.status(200).json({ code: 200, status: true, message: "Resources fetched successfully", data: resources });
 
     } catch (err) {
-        return res.status(500).json({status: false, code: 500,message: err.message || 'Internal Server Error' });
+        return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
     }
 };
 
@@ -286,7 +294,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
         const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false });
 
         if (!resource) {
-            return res.status(404).json({ code: 404,  status: false,  message: "Resource not found"});
+            return res.status(404).json({ code: 404, status: false, message: "Resource not found" });
         }
 
         // Language-specific field resolution
@@ -299,7 +307,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
 
         // Return only if key fields are present in selected language
         if (!specialistName || !address || !city || !state) {
-            return res.status(200).json({ code: 200, status: false, message: `Data not available in ${language} language`, data:[]});
+            return res.status(200).json({ code: 200, status: false, message: `Data not available in ${language} language`, data: [] });
         }
 
         const data = {
@@ -314,17 +322,12 @@ exports.getResourceItemDetailsById = async (req, res) => {
             mobileNo: resource.mobileNo,
             email: resource.email,
             // specialistImage: resource.specialistImage ? `${process.env.IMAGE_BASE_URL}/${resource.specialistImage}`: null,
-            icon: resource.icon  ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.icon}`: null,
+            icon: resource.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.icon}` : null,
         };
-
-        return res.status(200).json({  code: 200,  status: true,  message: "Resource details fetched successfully",  data});
-
+        return res.status(200).json({ code: 200, status: true, message: "Resource details fetched successfully", data });
     } catch (err) {
         console.error("Details Error:", err);
-        return res.status(500).json({
-            status: false,
-            message: err.message || "Internal Server Error"
-        });
+        return res.status(500).json({  status: false,   message: err.message || "Internal Server Error" });
     }
 };
 
