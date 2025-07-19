@@ -8,18 +8,21 @@ exports.createNewResourceItem = async (req, res) => {
     try {
         const token = req.headers['access-token'] || req.headers['authorization'];
         const userDetail = await userHelper.detail(token);
-        const { specialistName, mobileNo, email, address, landmark, resourceId, city, pincode, state, description } = req.body;
+        const { specialistName, mobileNo, email, address, landmark, resourceId, city, pincode, state, description, stateId, alternateNo, whatsappNo } = req.body;
         const language = req.headers["language"] || req.body.language;
 
         const newResource = new NewResourceItem({
             specialistName: { [language]: specialistName },
-            mobileNo: JSON.parse(mobileNo),
             email: email,
+            mobileNo:mobileNo,
+            alternateNo:alternateNo,
+            whatsappNo:whatsappNo,
+            // stateId:stateId,
             resourceId: resourceId,
             address: { [language]: address },
             landmark: { [language]: landmark },
             city: { [language]: city },
-            state: { [language]: state },
+            stateId: { [language]: stateId },
             description: { [language]: description },
             pincode: pincode,
             created_by: userDetail.data.user_id,
@@ -76,6 +79,8 @@ exports.listAllResourceItems = async (req, res) => {
             resourceName: item.resourceId?.name?.[language] || "",
             resourceId: item.resourceId?._id,
             mobileNo: item.mobileNo,
+            alternateNo: item.alternateNo,
+            whatsappNo: item.whatsappNo,
             email: item.email,
             address: item.address?.[language] || "",
             landmark: item.landmark?.[language] || "",
@@ -129,6 +134,8 @@ exports.getSingleResourceItemById = async (req, res) => {
             resourceName: resource.resourceId?.name?.[language] || "",
             resourceId: resource.resourceId?._id,
             mobileNo: resource.mobileNo,
+            alternateNo: resource.alternateNo,
+            whatsappNo: resource.whatsappNo,
             email: resource.email,
             address: resource.address?.[language] || "",
             landmark: resource.landmark?.[language] || "",
@@ -161,7 +168,9 @@ exports.updateResourceItemById = async (req, res) => {
         if (state) updateQuery["state." + language] = state;
         if (description) updateQuery["description." + language] = description;
 
-        if (mobileNo) updateQuery.mobileNo = JSON.parse(mobileNo);
+        if (mobileNo) updateQuery.mobileNo = mobileNo;
+        if (alternateNo) updateQuery.alternateNo = alternateNo;
+        if (whatsappNo) updateQuery.whatsappNo = whatsappNo;
         if (email) updateQuery.email = email;
         if (pincode) updateQuery.pincode = pincode;
         if (resourceId) updateQuery.resourceId = resourceId;

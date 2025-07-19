@@ -6,48 +6,56 @@ const ResourceItemsSchema = mongoose.Schema(
       type: Object,
       required: true
     },
-    resourceId:{
-      type:mongoose.Types.ObjectId,
-      ref:'NewResource'
+    resourceId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'NewResource'
     },
-    specialistImage:{
-        type:String,
-        required:true
+    specialistImage: {
+      type: String,
+      required: true
     },
     icon: {
       type: String,
       default: ""
     },
-    mobileNo:{
-        type:[String],
-        default:[],
+    mobileNo: {
+      type: String,
+      required: true,
     },
-    email:{
-        type:String,
-        required:true
+    whatsappNo: {
+      type: String,
+      required: true,
     },
-    address:{
-        type: Object,
+    alternateNo: {
+      type: String,
+      required: false,
+    },
+    email: {
+      type: String,
       required: true
     },
-    landmark:{
-        type: Object,
+    address: {
+      type: Object,
       required: true
     },
-    city:{
-        type: Object,
+    landmark: {
+      type: Object,
       required: true
     },
-    pincode:{
-        type:String,
-        required:true
-    },
-    state:{
-        type: Object,
+    city: {
+      type: Object,
       required: true
     },
-    description:{
-        type: Object,
+    pincode: {
+      type: String,
+      required: true
+    },
+    stateId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'State'
+    },
+    description: {
+      type: Object,
       required: true
     },
     isDeleted: {
