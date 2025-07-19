@@ -8,7 +8,7 @@ exports.createNewResourceItem = async (req, res) => {
     try {
         const token = req.headers['access-token'] || req.headers['authorization'];
         const userDetail = await userHelper.detail(token);
-        const { specialistName, mobileNo, email, address, landmark, resourceId, city, pincode, state, description, stateId, alternateNo, whatsappNo } = req.body;
+        const { specialistName, mobileNo, email, address, landmark, resourceId, city, pincode, description, stateId, alternateNo, whatsappNo } = req.body;
         const language = req.headers["language"] || req.body.language;
 
         const newResource = new NewResourceItem({
@@ -17,12 +17,11 @@ exports.createNewResourceItem = async (req, res) => {
             mobileNo:mobileNo,
             alternateNo:alternateNo,
             whatsappNo:whatsappNo,
-            // stateId:stateId,
+            stateId: stateId ,
             resourceId: resourceId,
             address: { [language]: address },
             landmark: { [language]: landmark },
             city: { [language]: city },
-            stateId: { [language]: stateId },
             description: { [language]: description },
             pincode: pincode,
             created_by: userDetail.data.user_id,
