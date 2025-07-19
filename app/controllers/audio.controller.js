@@ -48,7 +48,7 @@ exports.create = async (req, res) => {
     if (featuredImage) {
       let imageData = await upload.uploadImage(featuredImage);
       if (imageData.status === true) {
-        audio.featured_image = { en: imageData.name }
+        audio.featured_image = { [language]: imageData.name }
       } else {
         return res.send({ status: false, message: imageData.message })
       }
@@ -870,7 +870,7 @@ exports.listOfTopAudioCastOrVideoCast = async (req, res) => {
           featured_image: { $ifNull: [`$featured_image.${language}`, ""] }
         }
       },
-       {
+      {
         $match: {
           $and: [
             { title: { $ne: "" } },
@@ -1116,7 +1116,7 @@ exports.detailsOfAudioCast = async (req, res) => {
 
 
 
-//List of all top video or audio cast filter category or contact level peding===> done filter languages bases
+//List of all top video or audio cast filter category or contact level pending
 exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
   try {
     const language = req.query.language || req.headers["language"] || "en";
@@ -1186,12 +1186,13 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
       }
 
       if (categoryNameFilter) {
-        matchConditions.push({ categoryName: { $regex: categoryNameFilter, $options: "i" } });
+        matchConditions.push({ categoryName: { $regex: categoryNameFilter, $options: "i" } }); // 🔍 Applied filter: categoryName
       }
 
       if (contactLevelFilter) {
-        matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } });
+        matchConditions.push({ contact_level: { $regex: contactLevelFilter, $options: "i" } }); // 🔍 Applied filter: contact_level
       }
+
 
       if (matchConditions.length > 0) {
         pipeline.push({ $match: { $and: matchConditions } });
@@ -1316,6 +1317,20 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
           });
         }
 
+        // 🔍 Apply optional filters for Audio
+        const extraMatch = {};
+
+        if (categoryNameFilter) {
+          extraMatch.localizedCategoryName = { $regex: categoryNameFilter, $options: "i" }; // 🔍 Applied filter: categoryName
+        }
+        if (contactLevelFilter) {
+          extraMatch.contact_level = { $regex: contactLevelFilter, $options: "i" }; // 🔍 Applied filter: contact_level
+        }
+        if (Object.keys(extraMatch).length) {
+          pipeline.push({ $match: extraMatch }); // 🔍 Injected $match with categoryName/contactLevel
+        }
+
+
         pipeline.push({
           $project: {
             _id: 1,
@@ -1408,6 +1423,20 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
           });
         }
 
+        // 🔍 Apply optional filters for Video
+        const extraMatch = {};
+
+        if (categoryNameFilter) {
+          extraMatch.localizedCategoryName = { $regex: categoryNameFilter, $options: "i" }; // 🔍 Applied filter: categoryName
+        }
+        if (contactLevelFilter) {
+          extraMatch.contact_level = { $regex: contactLevelFilter, $options: "i" }; // 🔍 Applied filter: contact_level
+        }
+        if (Object.keys(extraMatch).length) {
+          pipeline.push({ $match: extraMatch }); // 🔍 Injected $match with categoryName/contactLevel
+        }
+
+
         pipeline.push({
           $project: {
             _id: 1,
@@ -1445,6 +1474,7 @@ exports.listOfAllTopAudioCastOrVideoCast = async (req, res) => {
           data: finalData
         });
       }
+
     }
 
   } catch (err) {

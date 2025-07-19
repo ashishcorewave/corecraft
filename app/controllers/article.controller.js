@@ -33,16 +33,15 @@ exports.createArticle = async (req, res) => {
     if (req.body.quiz) {
       newArticle.quiz = req.body.quiz
     };
-    if (req.files && req.files.Img) {
-      const ImgFile = req.files.Img;
+
+    const ImgFile = req.files.Img;
+    if (ImgFile) {
       const imageData = await upload.uploadImage(ImgFile);
       if (imageData.status === true) {
-        newArticle.Img = imageData.name;
+        newArticle.Img = { [language]: imageData.name }
       } else {
         return res.status(400).json({ status: false, message: imageData.message });
       }
-    } else {
-      return res.status(400).json({ status: false, message: 'A Img file is required.' });
     }
     await newArticle.save();
     return res.status(201).json({ code: "201", status: true, message: 'Article created successfully' });
@@ -406,7 +405,7 @@ exports.createComment = async (req, res) => {
     comments
       .save()
       .then(async (data) => {
-        await Article.updateOne({ _id: postId }, { $inc: { commentCount: +1 } })
+        await Article.updateOne({ _id: postId }, { $inc: { commentCount: 1 } })
         return res.send({
           status: true,
           message: messages.create.success,
@@ -414,15 +413,10 @@ exports.createComment = async (req, res) => {
         })
       })
       .catch((err) => {
-        return res.status(500).send({
-          message: err.message || messages.create.error
-        })
+        return res.status(500).send({ message: err.message || messages.create.error })
       })
   } else {
-    return res.send({
-      status: false,
-      message: messages.create.error
-    })
+    return res.send({ status: false, message: messages.create.error })
   }
 }
 
