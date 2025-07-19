@@ -231,6 +231,7 @@ exports.allResourcesList = async (req, res) => {
         const language = req.headers["language"] || req.query.language || "en";
         const pincode = req.query.pincode || null;
         const state = req.query.state ? req.query.state.trim() : null;
+        const searchData = req.query.searchData || ""
 
 
         const filter = {
@@ -244,7 +245,7 @@ exports.allResourcesList = async (req, res) => {
             },
             {
                 $lookup: {
-                    from: "states", // Collection name
+                    from: "states",
                     localField: "stateId",
                     foreignField: "_id",
                     as: "stateData"
@@ -289,6 +290,27 @@ exports.allResourcesList = async (req, res) => {
                 }
             }
         ];
+
+        if (searchData) {
+            pipeline.push({
+                $match: {
+                    specialistName: { $regex: searchData, $options: "i" }
+                }
+            });
+        }
+
+        // 👉 Filter non-empty essential fields
+        pipeline.push({
+            $match: {
+                $and: [
+                    { specialistName: { $ne: "" } },
+                    { address: { $ne: "" } },
+                    { landmark: { $ne: "" } },
+                    { city: { $ne: "" } },
+                    { state: { $ne: "" } }
+                ]
+            }
+        });
 
 
         // 👉 Apply optional filters
@@ -344,8 +366,8 @@ exports.getResourceItemDetailsById = async (req, res) => {
             city,
             state,
             description,
-            whatsappNo:resource.whatsappNo,
-            alternateNo:resource.alternateNo,
+            whatsappNo: resource.whatsappNo,
+            alternateNo: resource.alternateNo,
             pincode: resource.pincode,
             mobileNo: resource.mobileNo,
             email: resource.email,
@@ -359,6 +381,20 @@ exports.getResourceItemDetailsById = async (req, res) => {
     }
 };
 
+
+exports.getStateBasePinCode = async (req, res) => {
+    try {
+        const filter = {
+            isDeleted: false,
+            stateId: new mongoose.Types.ObjectId(req.query.stateId),
+        }
+        const getDataQuery = await NewResourceItem.find(filter).select("_id pincode").lean();
+        return res.status(200).json({ code: 200, status: true, message: "Get State base pincode successfully", getDataQuery });
+    } catch (err) {
+        console.error("Details Error:", err);
+        return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
+    }
+}
 
 
 

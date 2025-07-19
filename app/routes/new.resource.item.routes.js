@@ -12,4 +12,6 @@ router.delete('/new-resource-item/:resourceId', newresourceitem.deleteResourceIt
 //Mobile Application
 router.get('/all-resource-item', newresourceitem.allResourcesList);
 router.get('/all-resource-item/:resourceId', newresourceitem.getResourceItemDetailsById);
+
+router.get('/state-by-pincode', newresourceitem.getStateBasePinCode);
 module.exports = router;
