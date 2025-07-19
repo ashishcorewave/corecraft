@@ -14,10 +14,10 @@ exports.createNewResourceItem = async (req, res) => {
         const newResource = new NewResourceItem({
             specialistName: { [language]: specialistName },
             email: email,
-            mobileNo:mobileNo,
-            alternateNo:alternateNo,
-            whatsappNo:whatsappNo,
-            stateId: stateId ,
+            mobileNo: mobileNo,
+            alternateNo: alternateNo,
+            whatsappNo: whatsappNo,
+            stateId: stateId,
             resourceId: resourceId,
             address: { [language]: address },
             landmark: { [language]: landmark },
@@ -70,13 +70,15 @@ exports.listAllResourceItems = async (req, res) => {
             filter[`specialistName.${language}`] = { $regex: searchData, $options: "i" };
         }
 
-        const resources = await NewResourceItem.find(filter).populate("resourceId").sort({ _id: -1 });
+        const resources = await NewResourceItem.find(filter).populate("resourceId").populate("stateId").sort({ _id: -1 });
 
         const responseData = resources.map(item => ({
             _id: item._id,
             specialistName: item.specialistName?.[language] || "",
             resourceName: item.resourceId?.name?.[language] || "",
+            state: item.stateId?.label?.[language] || "",
             resourceId: item.resourceId?._id,
+            stateId: item.stateId?.label?._id,
             mobileNo: item.mobileNo,
             alternateNo: item.alternateNo,
             whatsappNo: item.whatsappNo,
@@ -84,7 +86,6 @@ exports.listAllResourceItems = async (req, res) => {
             address: item.address?.[language] || "",
             landmark: item.landmark?.[language] || "",
             city: item.city?.[language] || "",
-            state: item.state?.[language] || "",
             description: item.description?.[language] || "",
             pincode: item.pincode,
             specialistImage: item.specialistImage || null,
@@ -234,7 +235,7 @@ exports.allResourcesList = async (req, res) => {
 
         const filter = {
             isDeleted: false,
-            resourceId : new mongoose.Types.ObjectId(req.query.resourceId),
+            resourceId: new mongoose.Types.ObjectId(req.query.resourceId),
         };
 
         const pipeline = [
@@ -242,15 +243,31 @@ exports.allResourcesList = async (req, res) => {
                 $match: filter
             },
             {
+                $lookup: {
+                    from: "states", // Collection name
+                    localField: "_idd",
+                    foreignField: "stateId",
+                    as: "stateData"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$stateData",
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
                 $project: {
                     specialistName: { $ifNull: [`$specialistName.${language}`, ""] },
                     address: { $ifNull: [`$address.${language}`, ""] },
                     landmark: { $ifNull: [`$landmark.${language}`, ""] },
                     city: { $ifNull: [`$city.${language}`, ""] },
-                    state: { $ifNull: [`$state.${language}`, ""] },
+                    state: { $ifNull: [`$stateData.label.${language}`, ""] },
                     pincode: 1,
                     mobileNo: 1,
                     email: 1,
+                    alternateNo: 1,
+                    whatsappNo: 1,
                     specialistImage: {
                         $cond: {
                             if: { $ne: ["$specialistImage", null] },
@@ -272,6 +289,7 @@ exports.allResourcesList = async (req, res) => {
                 }
             }
         ];
+
 
         // 👉 Apply optional filters
         if (pincode) {
@@ -299,7 +317,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
         const language = req.headers["language"] || req.query.language || "en";
         const resourceId = req.params.resourceId;
 
-        const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false });
+        const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false }).populate("stateId");
 
         if (!resource) {
             return res.status(404).json({ code: 404, status: false, message: "Resource not found" });
@@ -310,7 +328,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
         const address = resource.address?.[language] || "";
         const landmark = resource.landmark?.[language] || "";
         const city = resource.city?.[language] || "";
-        const state = resource.state?.[language] || "";
+        const state = resource.stateId?.label?.[language] || "";
         const description = resource.description?.[language] || "";
 
         // Return only if key fields are present in selected language
@@ -326,6 +344,8 @@ exports.getResourceItemDetailsById = async (req, res) => {
             city,
             state,
             description,
+            whatsappNo:resource.whatsappNo,
+            alternateNo:resource.alternateNo,
             pincode: resource.pincode,
             mobileNo: resource.mobileNo,
             email: resource.email,
@@ -335,7 +355,7 @@ exports.getResourceItemDetailsById = async (req, res) => {
         return res.status(200).json({ code: 200, status: true, message: "Resource details fetched successfully", data });
     } catch (err) {
         console.error("Details Error:", err);
-        return res.status(500).json({  status: false,   message: err.message || "Internal Server Error" });
+        return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
     }
 };
 
