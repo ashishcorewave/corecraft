@@ -245,8 +245,8 @@ exports.allResourcesList = async (req, res) => {
             {
                 $lookup: {
                     from: "states", // Collection name
-                    localField: "_idd",
-                    foreignField: "stateId",
+                    localField: "stateId",
+                    foreignField: "_id",
                     as: "stateData"
                 }
             },
