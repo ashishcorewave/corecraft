@@ -72,7 +72,14 @@ exports.listAllResourceItems = async (req, res) => {
 
         const resources = await NewResourceItem.find(filter).populate("resourceId").populate("stateId").sort({ _id: -1 });
 
-        const responseData = resources.map(item => ({
+
+           const filtered = resources.filter(item =>
+            item.specialistName?.[language] &&
+            item.resourceId?.name?.[language] &&
+            item.stateId?.label?.[language]
+        );
+
+        const responseData = filtered.map(item => ({
             _id: item._id,
             specialistName: item.specialistName?.[language] ,
             resourceName: item.resourceId?.name?.[language] ,
