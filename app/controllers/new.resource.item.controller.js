@@ -98,8 +98,8 @@ exports.listAllResourceItems = async (req, res) => {
         const finalData = responseData.map((item) => {
             return ({
                 ...item,
-                specialistImage: `${process.env.IMAGE_BASE_URL}/${item.specialistImage}`,
-                icon: `${process.env.IMAGE_BASE_URL}/${item.icon}`
+                specialistImage: `${process.env.IMAGE_BASE_URL}/uploads/${item.specialistImage}`,
+                icon: `${process.env.IMAGE_BASE_URL}/uploads/${item.icon}`
             })
         })
 
@@ -142,11 +142,12 @@ exports.getSingleResourceItemById = async (req, res) => {
             address: resource.address?.[language] || "",
             landmark: resource.landmark?.[language] || "",
             city: resource.city?.[language] || "",
-            state: resource.state?.[language] || "",
+            // state: resource.state?.[language] || "",
+            stateId:resource.stateId,
             description: resource.description?.[language] || "",
             pincode: resource.pincode,
-            specialistImage: resource.specialistImage ? `${process.env.IMAGE_BASE_URL}/${resource.specialistImage}` : null,
-            icon: resource.icon ? `${process.env.IMAGE_BASE_URL}/${resource.icon}` : null,
+            specialistImage: resource.specialistImage ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.specialistImage}` : null,
+            icon: resource.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.icon}` : null,
         };
 
         return res.status(200).json({ code: "200", status: true, message: "Resource fetched successfully", data: responseData });
