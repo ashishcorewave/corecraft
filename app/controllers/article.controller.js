@@ -83,7 +83,7 @@ exports.getAll = async (req, res) => {
           isDeleted: item.isDeleted,
           commentCount: item.commentCount,
           shortCode: language,
-          Img: item.Img ? `${process.env.IMAGE_BASE_URL}/uploads/${item.Img}` : null
+          Img: item.Img[language] ? `${process.env.IMAGE_BASE_URL}/uploads/${item.Img[language]}` : null
         };
       });
     return res.status(200).json({ status: true, code: "200", message: "Article filtered by language successfully", data, count: count });
