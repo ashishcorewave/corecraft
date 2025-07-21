@@ -219,8 +219,8 @@ exports.deleteResourceItem = async (req, res) => {
             isDeleted: true
         };
         const options = { new: true };
-        await NewResourceItem(filter, update, options);
-        return res.status({ status: true, code: 201, message: "Item resources deleted successfully" });
+        await NewResourceItem.findByIdAndUpdate(filter, update, options);
+        return res.status(201).json({ status: true, code: 201, message: "Item resources deleted successfully" });
     } catch (err) {
         return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
     }
