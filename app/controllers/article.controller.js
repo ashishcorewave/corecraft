@@ -158,7 +158,7 @@ exports.getById = async (req, res) => {
 
     const articlesDetailsQuery = await Article.aggregate(aggregationPipeline);
     const item = articlesDetailsQuery[0];
-    item.Img = item.Img ? `${process.env.BASE_URL}/uploads/${item.Img}` : null;
+    item.Img = item.Img[language] ? `${process.env.BASE_URL}/uploads/${item.Img[language]}` : null;
     return res.status(200).json({ status: true, code: 200, message: "Get Articles details Successfully", data: item });
 
   } catch (err) {
