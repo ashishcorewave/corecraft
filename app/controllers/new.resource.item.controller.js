@@ -161,7 +161,7 @@ exports.getSingleResourceItemById = async (req, res) => {
 exports.updateResourceItemById = async (req, res) => {
     try {
         const language = req.headers["language"] || req.body.language;
-        const { specialistName, mobileNo, email, address, landmark, city, state, description, pincode, resourceId } = req.body;
+        const { specialistName, mobileNo, email, address, landmark, city, state, description, pincode, resourceId,alternateNo ,whatsappNo} = req.body;
         const updateQuery = {};
         // Update multilingual and regular fields
         if (specialistName) updateQuery["specialistName." + language] = specialistName;
