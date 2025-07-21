@@ -83,6 +83,7 @@ exports.listAllResourceItems = async (req, res) => {
             alternateNo: item.alternateNo,
             whatsappNo: item.whatsappNo,
             email: item.email,
+            shortCode:language,
             address: item.address?.[language] || "",
             landmark: item.landmark?.[language] || "",
             city: item.city?.[language] || "",
@@ -137,6 +138,7 @@ exports.getSingleResourceItemById = async (req, res) => {
             alternateNo: resource.alternateNo,
             whatsappNo: resource.whatsappNo,
             email: resource.email,
+            shortCode:language,
             address: resource.address?.[language] || "",
             landmark: resource.landmark?.[language] || "",
             city: resource.city?.[language] || "",
@@ -299,7 +301,7 @@ exports.allResourcesList = async (req, res) => {
             });
         }
 
-        // 👉 Filter non-empty essential fields
+        //  Filter non-empty essential fields
         pipeline.push({
             $match: {
                 $and: [
@@ -313,7 +315,7 @@ exports.allResourcesList = async (req, res) => {
         });
 
 
-        // 👉 Apply optional filters
+        //  Apply optional filters
         if (pincode) {
             pipeline.push({ $match: { pincode: pincode } });
         }
