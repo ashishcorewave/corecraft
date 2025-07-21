@@ -61,9 +61,9 @@ exports.createNewResourceItem = async (req, res) => {
 
 exports.listAllResourceItems = async (req, res) => {
     try {
-        const language = req.headers["language"] || "en";
-        const searchData = (req.query.searchData || "").trim();
-
+        const language = req.headers["language"] || req.query.language || "en";
+        const searchData = (req.query.q || "").trim();
+        console.log(language, "language")
         let filter = { isDeleted: false };
 
         if (searchData) {
@@ -71,30 +71,30 @@ exports.listAllResourceItems = async (req, res) => {
         }
 
         const resources = await NewResourceItem.find(filter).populate("resourceId").populate("stateId").sort({ _id: -1 });
-
-
-           const filtered = resources.filter(item =>
-            item.specialistName?.[language] &&
-            item.resourceId?.name?.[language] &&
-            item.stateId?.label?.[language]
+        const filtered = resources.filter(item =>
+            item.specialistName?.[language]&&
+            item.address?.[language] &&
+            item.landmark?.[language] && 
+            item.city?.[language] &&
+            item.description?.[language],
         );
 
         const responseData = filtered.map(item => ({
             _id: item._id,
-            specialistName: item.specialistName?.[language] ,
-            resourceName: item.resourceId?.name?.[language] ,
-            state: item.stateId?.label?.[language] ,
+            specialistName: item.specialistName?.[language],
+            resourceName: item.resourceId?.name?.[language],
+            state: item.stateId?.label?.[language],
             resourceId: item.resourceId?._id,
             stateId: item.stateId?.label?._id,
             mobileNo: item.mobileNo,
             alternateNo: item.alternateNo,
             whatsappNo: item.whatsappNo,
             email: item.email,
-            shortCode:language,
-            address: item.address?.[language] ,
-            landmark: item.landmark?.[language] ,
-            city: item.city?.[language] ,
-            description: item.description?.[language] ,
+            shortCode: language,
+            address: item.address?.[language],
+            landmark: item.landmark?.[language],
+            city: item.city?.[language],
+            description: item.description?.[language],
             pincode: item.pincode,
             specialistImage: item.specialistImage || null,
             icon: item.icon || null,
@@ -127,7 +127,7 @@ exports.listAllResourceItems = async (req, res) => {
 
 exports.getSingleResourceItemById = async (req, res) => {
     try {
-        const language = req.headers["language"] || "en";
+        const language = req.headers["language"] || req.query.language;
         const resourceId = req.params.resourceId;
 
         const resource = await NewResourceItem.findOne({ _id: resourceId, isDeleted: false }).populate("resourceId");
@@ -138,20 +138,20 @@ exports.getSingleResourceItemById = async (req, res) => {
 
         const responseData = {
             _id: resource._id,
-            specialistName: resource.specialistName?.[language] || "",
-            resourceName: resource.resourceId?.name?.[language] || "",
+            specialistName: resource.specialistName?.[language] || " ",
+            // resourceName: resource.resourceId?.name?.[language] ,
             resourceId: resource.resourceId?._id,
             mobileNo: resource.mobileNo,
             alternateNo: resource.alternateNo,
             whatsappNo: resource.whatsappNo,
             email: resource.email,
-            shortCode:language,
-            address: resource.address?.[language] || "",
-            landmark: resource.landmark?.[language] || "",
-            city: resource.city?.[language] || "",
-            // state: resource.state?.[language] || "",
-            stateId:resource.stateId,
-            description: resource.description?.[language] || "",
+            shortCode: language,
+            address: resource.address?.[language] || " ",
+            landmark: resource.landmark?.[language] || " ",
+            city: resource.city?.[language],
+            // state: resource.state?.[language] ,
+            stateId: resource.stateId,
+            description: resource.description?.[language] || " ",
             pincode: resource.pincode,
             specialistImage: resource.specialistImage ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.specialistImage}` : null,
             icon: resource.icon ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.icon}` : null,
@@ -168,14 +168,14 @@ exports.getSingleResourceItemById = async (req, res) => {
 exports.updateResourceItemById = async (req, res) => {
     try {
         const language = req.headers["language"] || req.body.language;
-        const { specialistName, mobileNo, email, address, landmark, city, state, description, pincode, resourceId,alternateNo ,whatsappNo} = req.body;
+        const { specialistName, mobileNo, email, address, landmark, city, stateId, description, pincode, resourceId, alternateNo, whatsappNo } = req.body;
         const updateQuery = {};
         // Update multilingual and regular fields
         if (specialistName) updateQuery["specialistName." + language] = specialistName;
         if (address) updateQuery["address." + language] = address;
         if (landmark) updateQuery["landmark." + language] = landmark;
         if (city) updateQuery["city." + language] = city;
-        if (state) updateQuery["state." + language] = state;
+        // if (state) updateQuery["state." + language] = state;
         if (description) updateQuery["description." + language] = description;
 
         if (mobileNo) updateQuery.mobileNo = mobileNo;
@@ -184,6 +184,7 @@ exports.updateResourceItemById = async (req, res) => {
         if (email) updateQuery.email = email;
         if (pincode) updateQuery.pincode = pincode;
         if (resourceId) updateQuery.resourceId = resourceId;
+        if(stateId)updateQuery.stateId = stateId;
 
         // Upload new specialist image if provided
         if (req.files && req.files?.specialistImage) {
