@@ -208,7 +208,7 @@ exports.update = async (req, res) => {
     if (req.body.category) updateQuery.category = req.body.category;
     if (req.body.pincode) updateQuery.pincode = req.body.pincode;
     if (req.body.website) updateQuery.website = req.body.website;
-     if (req.body.stateId) updateQuery.stateId = req.body.stateId;
+    if (req.body.stateId) updateQuery.stateId = req.body.stateId;
 
     // Location update
     if (req.body.latitude && req.body.longitude) {
@@ -293,7 +293,7 @@ exports.getById = async (req, res) => {
           pincode: 1,
           website: 1,
           loc: 1,
-          photo:1,
+          photo: 1,
           name: { $ifNull: [`$name.${language}`, ""] },
           city: { $ifNull: [`$city.${language}`, ""] },
           specialization: { $ifNull: [`$specialization.${language}`, ""] },
@@ -466,3 +466,182 @@ exports.downloadContact = async (req, res) => {
 
   }
 }
+
+
+exports.allContactList = async (req, res) => {
+  try {
+    const language = req.headers["language"] || req.query.language || "en";
+    const pincode = req.query.pincode || null;
+    const state = req.query.state ? req.query.state.trim() : null;
+    const searchData = req.query.searchData || ""
+
+
+    const filter = {
+      isDeleted: false,
+      category: new mongoose.Types.ObjectId(req.query.category),
+    };
+
+    const pipeline = [
+      {
+        $match: filter
+      },
+      {
+        $lookup: {
+          from: "states",
+          localField: "state",
+          foreignField: "_id",
+          as: "stateResult"
+        }
+      },
+      {
+        $unwind: {
+          path: "$stateResult",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: { $ifNull: [`$name.${language}`, ""] },
+          address: { $ifNull: [`$address.${language}`, ""] },
+          city: { $ifNull: [`$city.${language}`, ""] },
+          state: { $ifNull: [`$stateResult.label.${language}`, ""] },
+          pincode: 1,
+          contact_number: 1,
+          email: 1,
+          photo: {
+            $cond: {
+              if: { $and: [{ $ne: ["$photo", null] }, { $ne: ["$photo", ""] }] },
+              then: { $concat: [process.env.IMAGE_BASE_URL, "/uploads/", "$photo"] },
+              else: null
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          $and: [
+            { name: { $ne: "" } },
+            { address: { $ne: "" } },
+            { photo: { $ne: "" } },
+            { city: { $ne: "" } },
+            { state: { $ne: "" } },
+            { name: { $ne: "" } }
+          ]
+        }
+      }
+    ];
+
+    if (searchData) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { name: { $regex: searchData, $options: "i" } },
+            { address: { $regex: searchData, $options: "i" } },
+            { city: { $regex: searchData, $options: "i" } },
+            { state: { $regex: searchData, $options: "i" } },
+          ]
+        }
+      });
+    }
+
+    pipeline.push({
+      $match: {
+        $and: [
+          { specialistName: { $ne: "" } },
+          { address: { $ne: "" } },
+          { landmark: { $ne: "" } },
+          { city: { $ne: "" } },
+          { state: { $ne: "" } },
+          { name: { $ne: "" } },
+        ]
+      }
+    });
+
+
+    //  Apply optional filters
+    if (pincode) {
+      pipeline.push({ $match: { pincode: pincode } });
+    }
+
+    if (state) {
+      pipeline.push({
+        $match: {
+          state: { $regex: state, $options: "i" }
+        }
+      });
+    }
+    const resources = await Contact.aggregate(pipeline);
+    return res.status(200).json({ code: 200, status: true, message: "All Contact fetched successfully", data: resources });
+
+  } catch (err) {
+    return res.status(500).json({ status: false, code: 500, message: err.message || 'Internal Server Error' });
+  }
+};
+
+
+
+exports.getStateBasePinCode = async (req, res) => {
+  try {
+    const filter = {
+      isDeleted: false,
+      state: new mongoose.Types.ObjectId(req.query.stateId),
+    }
+    const getDataQuery = await Contact.find(filter).select("_id pincode").lean();
+    return res.status(200).json({ code: 200, status: true, message: "Get State base pincode successfully", getDataQuery });
+  } catch (err) {
+    console.error("Details Error:", err);
+    return res.status(500).json({ status: false, message: err.message || "Internal Server Error" });
+  }
+}
+
+
+
+
+exports.allContactDetails = async (req, res) => {
+  try {
+    const language = req.headers["language"] || req.query.language || "en";
+    const contactId = req.params.contactId;
+
+    const resource = await Contact.findOne({ _id: contactId, isDeleted: false })
+      .populate("state"); // make sure "state" is correct ref in schema
+
+    if (!resource) {
+      return res.status(404).json({
+        code: 404,
+        status: false,
+        message: "Resource not found"
+      });
+    }
+
+    // resolve multilingual fields safely
+    const data = {
+      _id: resource._id,
+      name: resource.name?.[language] || "",
+      address: resource.address?.[language] || "",
+      city: resource.city?.[language] || "",
+      state: resource.state?.label?.[language] || "",
+      pincode: resource.pincode || "",
+      contact_number: resource.contact_number || "",
+      email: resource.email || "",
+      photo: resource.photo ? `${process.env.IMAGE_BASE_URL}/uploads/${resource.photo}` : null,
+
+    };
+
+    return res.status(200).json({
+      code: 200,
+      status: true,
+      message: "Resource details fetched successfully",
+      data
+    });
+
+  } catch (err) {
+    console.error("Details Error:", err);
+    return res.status(500).json({
+      status: false,
+      message: err.message || "Internal Server Error"
+    });
+  }
+};
+
+

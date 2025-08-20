@@ -1388,10 +1388,18 @@ exports.getFilterList = async (req, res) => {
   const ContactCategory = require("../models/contactCategory.model.js")
   const ContactLevel = require("../models/contact.level.model.js")
   const States = require("../models/state.model.js")
-  // await States.deleteMany({});
-  // await States.insertMany([]);
+
+
   let articleCategories = await ArticleCategory.find({ isDeleted: false }, { name: 1 })
-  let contactCategories = await ContactCategory.find({}, { name: 1 })
+
+  let cancerTypeDocs = await ArticleCategory.find({ isDeleted: false }).select("name").lean();
+
+  let cancerType = cancerTypeDocs
+  .map((d) => d.name[language] || d.name.en || null) 
+  .filter((name) => name); // remove null/empty
+
+  let contactCategories = await ContactCategory.find({}, { name: 1 });
+
   contactCategories.forEach((d) => {
     d.name = d.name[language] ? d.name[language] : d.name.en
   })
@@ -1415,7 +1423,8 @@ exports.getFilterList = async (req, res) => {
   stateList.forEach((d) => {
     d.label = d.label[language] ? d.label[language] : d.label.en
   })
-  let cancerType = ['Anal Cancer', 'Bladder Cancer', 'Bone Cancer', 'Breast Cancer', 'Cervical Cancer', 'Colorectal Cancer', 'Fallopian Tube Cancer', 'Liver Cancer', 'Male Breast Cancer', 'Non-Small Cell Lung Cancer', 'Pancreatic Cancer', 'Penile Cancer', 'Rectal Cancer']
+  
+  // let cancerType = ['Anal Cancer', 'Bladder Cancer', 'Bone Cancer', 'Breast Cancer', 'Cervical Cancer', 'Colorectal Cancer', 'Fallopian Tube Cancer', 'Liver Cancer', 'Male Breast Cancer', 'Non-Small Cell Lung Cancer', 'Pancreatic Cancer', 'Penile Cancer', 'Rectal Cancer']
   let data = {
     articleCategories,
     contactCategories,
@@ -1424,12 +1433,15 @@ exports.getFilterList = async (req, res) => {
     stateList,
     cancerType
   }
+  
   return res.send({
     status: true,
     data: data,
     message: ""
   })
 }
+
+
 
 exports.getLeaderBoardData = async (req, res) => {
   let limit = parseInt(req.query.limit ? req.query.limit : config.limit)

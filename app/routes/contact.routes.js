@@ -21,5 +21,7 @@ router.delete("/deleteContact/:contactId", contacts.delete)
 
 router.post("/downloadContact", contacts.downloadContact)
 
-
+router.get('/all-contact', contacts.allContactList);
+router.get('/state-base-pincode', contacts.getStateBasePinCode);
+router.get('/contact-details/:contactId', contacts.allContactDetails);
 module.exports = router;
