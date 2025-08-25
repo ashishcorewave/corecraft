@@ -69,7 +69,6 @@ exports.getAllDoctors = async (req, res) => {
             doctorImage: item.doctorImage ? `${process.env.IMAGE_BASE_URL}/uploads/${item.doctorImage}` : null,
             categoryName: item.category.map(cat => cat?.name?.[language] || "").filter(Boolean)
         }));
-        console.log("Hello");
 
         return res.status(200).json({ status: true, code: "200", message: "Doctors fetched successfully", data, count: count });
     } catch (err) {
