@@ -55,7 +55,6 @@ exports.getAllDoctors = async (req, res) => {
             if (q) {
                 return doctorNameInLang.toLowerCase().includes(q.toLowerCase());
             }
-            console.log("hello")
             return true;
         });
         // Pagination
